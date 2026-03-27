@@ -1,65 +1,88 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DataTable, type Column } from "@/components/dashboard/DataTable";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { apiClient } from "@/lib/api";
 
 interface PendingAccount {
   id: string;
-  name: string;
+  display_name: string;
   email: string;
   role: string;
-  registeredDate: string;
+  registered_at: string;
+  profile_picture?: string;
   [key: string]: unknown;
 }
 
-const mockPending: PendingAccount[] = [
-  { id: "1", name: "Priya Sharma", email: "priya@gmail.com", role: "alumni", registeredDate: "2026-03-25" },
-  { id: "2", name: "Rahul Verma", email: "rahul@outlook.com", role: "student", registeredDate: "2026-03-24" },
-  { id: "3", name: "Anita Roy", email: "anita@yahoo.com", role: "alumni", registeredDate: "2026-03-23" },
-  { id: "4", name: "David Lee", email: "david@gmail.com", role: "student", registeredDate: "2026-03-22" },
-  { id: "5", name: "Sneha Patel", email: "sneha@gmail.com", role: "alumni", registeredDate: "2026-03-21" },
-];
-
 export default function PendingAccountsPage() {
-  const [accounts, setAccounts] = useState(mockPending);
+  const [accounts, setAccounts] = useState<PendingAccount[]>([]);
+  const [loading, setLoading] = useState(true);
   const [approveId, setApproveId] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleApprove = () => {
-    setAccounts((prev) => prev.filter((a) => a.id !== approveId));
-    toast({ title: "Account approved", description: "The user has been notified." });
-    setApproveId(null);
+  useEffect(() => {
+    apiClient.get<PendingAccount[]>("/api/admin/pending-accounts")
+      .then(setAccounts)
+      .catch(() => toast({ title: "Failed to load pending accounts", variant: "destructive" }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleApprove = async () => {
+    if (!approveId) return;
+    setActionLoading(true);
+    try {
+      await apiClient.patch(`/api/admin/approve-account/${approveId}`);
+      setAccounts((prev) => prev.filter((a) => a.id !== approveId));
+      toast({ title: "Account approved", description: "The user has been notified." });
+    } catch {
+      toast({ title: "Failed to approve", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+      setApproveId(null);
+    }
   };
 
-  const handleReject = () => {
-    setAccounts((prev) => prev.filter((a) => a.id !== rejectId));
-    toast({ title: "Account rejected", description: "Rejection reason has been sent." });
-    setRejectId(null);
-    setReason("");
+  const handleReject = async () => {
+    if (!rejectId) return;
+    setActionLoading(true);
+    try {
+      await apiClient.patch(`/api/admin/reject-account/${rejectId}`, { reason });
+      setAccounts((prev) => prev.filter((a) => a.id !== rejectId));
+      toast({ title: "Account rejected", description: "Rejection reason has been sent." });
+    } catch {
+      toast({ title: "Failed to reject", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
+      setRejectId(null);
+      setReason("");
+    }
   };
 
   const columns: Column<PendingAccount>[] = [
     {
-      key: "name",
+      key: "display_name",
       label: "User",
       render: (item) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
+            {item.profile_picture && <AvatarImage src={item.profile_picture} />}
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-              {item.name.split(" ").map((n) => n[0]).join("")}
+              {item.display_name.split(" ").map((n) => n[0]).join("")}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium">{item.name}</p>
+            <p className="text-sm font-medium">{item.display_name}</p>
             <p className="text-xs text-muted-foreground">{item.email}</p>
           </div>
         </div>
@@ -69,12 +92,14 @@ export default function PendingAccountsPage() {
       key: "role",
       label: "Role",
       render: (item) => (
-        <Badge variant="secondary" className="capitalize">
-          {item.role}
-        </Badge>
+        <Badge variant="secondary" className="capitalize">{item.role}</Badge>
       ),
     },
-    { key: "registeredDate", label: "Registered" },
+    {
+      key: "registered_at",
+      label: "Registered",
+      render: (item) => <span>{new Date(item.registered_at).toLocaleDateString()}</span>,
+    },
     {
       key: "actions",
       label: "Actions",
@@ -98,14 +123,20 @@ export default function PendingAccountsPage() {
         <p className="text-sm text-muted-foreground mt-1">{accounts.length} accounts awaiting review</p>
       </div>
 
-      <DataTable columns={columns} data={accounts} emptyMessage="No pending accounts" />
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+        </div>
+      ) : (
+        <DataTable columns={columns} data={accounts} emptyMessage="No pending accounts" />
+      )}
 
       <ConfirmDialog
         open={!!approveId}
         onOpenChange={() => setApproveId(null)}
         title="Approve Account"
         description="Are you sure you want to approve this account? The user will be notified."
-        confirmLabel="Approve"
+        confirmLabel={actionLoading ? "Approving..." : "Approve"}
         onConfirm={handleApprove}
       />
 
@@ -116,15 +147,13 @@ export default function PendingAccountsPage() {
           </DialogHeader>
           <div className="space-y-3">
             <Label>Reason for rejection</Label>
-            <Textarea
-              placeholder="Please provide a reason..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
+            <Textarea placeholder="Please provide a reason..." value={reason} onChange={(e) => setReason(e.target.value)} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReject} disabled={!reason.trim()}>Reject</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={!reason.trim() || actionLoading}>
+              {actionLoading ? "Rejecting..." : "Reject"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

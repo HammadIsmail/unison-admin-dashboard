@@ -22,8 +22,9 @@ export default function LoginPage() {
       await login(email, password);
       toast({ title: "Welcome back!", description: "You've been logged in successfully." });
       navigate("/");
-    } catch {
-      toast({ title: "Login failed", description: "Invalid credentials.", variant: "destructive" });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Invalid credentials.";
+      toast({ title: "Login failed", description: message, variant: "destructive" });
     } finally {
       setLoading(false);
     }

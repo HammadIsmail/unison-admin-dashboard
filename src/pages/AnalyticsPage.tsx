@@ -7,115 +7,175 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { UserSearchSelect, type UserOption } from "@/components/dashboard/UserSearchSelect";
 import { apiClient } from "@/lib/api";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { Network, Building2, TrendingUp, Users, ArrowRight } from "lucide-react";
+import { Network, Building2, TrendingUp, ArrowRight } from "lucide-react";
 
-// Mock data
-const centralityData = [
-  { id: "1", name: "Dr. Arun Mehta", connections: 145, field: "AI/ML", [Symbol.toPrimitive as unknown as string]: "" },
-  { id: "2", name: "Neha Singh", connections: 132, field: "Cloud", [Symbol.toPrimitive as unknown as string]: "" },
-  { id: "3", name: "Karthik Rajan", connections: 118, field: "Data Science", [Symbol.toPrimitive as unknown as string]: "" },
-  { id: "4", name: "Pooja Reddy", connections: 105, field: "Product", [Symbol.toPrimitive as unknown as string]: "" },
-  { id: "5", name: "Vikram Joshi", connections: 98, field: "DevOps", [Symbol.toPrimitive as unknown as string]: "" },
-];
-
-const topCompanies = [
-  { name: "Google", count: 45 },
-  { name: "Microsoft", count: 38 },
-  { name: "Amazon", count: 32 },
-  { name: "Flipkart", count: 28 },
-  { name: "Infosys", count: 22 },
-  { name: "TCS", count: 18 },
-];
-
-const skillTrends = [
-  { skill: "React", demand: 85, supply: 65 },
-  { skill: "Python", demand: 90, supply: 78 },
-  { skill: "AWS", demand: 72, supply: 45 },
-  { skill: "ML/AI", demand: 80, supply: 40 },
-  { skill: "DevOps", demand: 68, supply: 50 },
-  { skill: "SQL", demand: 60, supply: 70 },
-];
-
+// Types for API responses
 interface CentralityItem {
-  id: string;
-  name: string;
-  connections: number;
-  field: string;
+  alumni_id: string;
+  display_name: string;
+  connections_count: number;
+  centrality_score: number;
   [key: string]: unknown;
 }
 
+interface CompanyItem {
+  company: string;
+  alumni_count: number;
+}
+
+interface SkillTrendsResponse {
+  most_required_in_opportunities: string[];
+  most_common_among_alumni: string[];
+  gap: string[];
+}
+
+interface BatchItem {
+  batch: string;
+  total_alumni: number;
+  top_companies: string[];
+  top_roles: string[];
+  avg_connections: number;
+}
+
 export default function AnalyticsPage() {
+  // Shortest path state
   const [fromUserId, setFromUserId] = useState("");
   const [fromUserName, setFromUserName] = useState("");
   const [toUserId, setToUserId] = useState("");
   const [toUserName, setToUserName] = useState("");
   const [pathResult, setPathResult] = useState<string[] | null>(null);
+  const [pathHops, setPathHops] = useState<number | null>(null);
+  const [pathLoading, setPathLoading] = useState(false);
   const [allUsers, setAllUsers] = useState<UserOption[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
+  // Data state
+  const [centralityData, setCentralityData] = useState<CentralityItem[]>([]);
+  const [companiesData, setCompaniesData] = useState<CompanyItem[]>([]);
+  const [skillTrends, setSkillTrends] = useState<SkillTrendsResponse | null>(null);
+  const [batchData, setBatchData] = useState<BatchItem[]>([]);
+  const [loadingStates, setLoadingStates] = useState({
+    centrality: true, companies: true, skills: true, batch: true,
+  });
+
+  // Fetch all data on mount
   useEffect(() => {
-    const fetchUsers = async () => {
+    apiClient.get<CentralityItem[]>("/api/network/centrality")
+      .then(setCentralityData)
+      .catch(() => {})
+      .finally(() => setLoadingStates((s) => ({ ...s, centrality: false })));
+
+    apiClient.get<CompanyItem[]>("/api/network/top-companies")
+      .then(setCompaniesData)
+      .catch(() => {})
+      .finally(() => setLoadingStates((s) => ({ ...s, companies: false })));
+
+    apiClient.get<SkillTrendsResponse>("/api/network/skill-trends")
+      .then(setSkillTrends)
+      .catch(() => {})
+      .finally(() => setLoadingStates((s) => ({ ...s, skills: false })));
+
+    apiClient.get<BatchItem[]>("/api/network/batch-analysis")
+      .then(setBatchData)
+      .catch(() => {})
+      .finally(() => setLoadingStates((s) => ({ ...s, batch: false })));
+
+    // Fetch users for shortest path dropdowns
+    (async () => {
       setUsersLoading(true);
       try {
         const [alumniRes, studentsRes] = await Promise.allSettled([
-          apiClient.get<{ data?: Array<{ _id: string; username: string; name?: string }> }>("/api/admin/all-alumni?limit=500"),
-          apiClient.get<{ data?: Array<{ _id: string; username: string; name?: string }> }>("/api/admin/all-students?limit=500"),
+          apiClient.get<{ data?: Array<{ id: string; username?: string; display_name: string }> }>("/api/admin/all-alumni?limit=500"),
+          apiClient.get<{ data?: Array<{ id: string; username?: string; display_name: string }> }>("/api/admin/all-students?limit=500"),
         ]);
         const users: UserOption[] = [];
         if (alumniRes.status === "fulfilled" && alumniRes.value?.data) {
-          alumniRes.value.data.forEach((u) => users.push({ id: u._id, username: u.username, name: u.name }));
+          alumniRes.value.data.forEach((u) => users.push({ id: u.id, username: u.username || u.display_name, name: u.display_name }));
         }
         if (studentsRes.status === "fulfilled" && studentsRes.value?.data) {
-          studentsRes.value.data.forEach((u) => users.push({ id: u._id, username: u.username, name: u.name }));
+          studentsRes.value.data.forEach((u) => users.push({ id: u.id, username: u.username || u.display_name, name: u.display_name }));
         }
         setAllUsers(users);
-      } catch (e) {
-        console.error("Failed to fetch users", e);
-      } finally {
-        setUsersLoading(false);
-      }
-    };
-    fetchUsers();
+      } catch {}
+      setUsersLoading(false);
+    })();
   }, []);
 
   const handleFindPath = async () => {
-    if (fromUserId && toUserId) {
-      try {
-        const res = await apiClient.get<{ path?: Array<{ username: string }> }>(
-          `/api/network/shortest-path?from=${fromUserId}&to=${toUserId}`
-        );
-        if (res.path) {
-          setPathResult(res.path.map((n) => n.username));
-        } else {
-          setPathResult([fromUserName, "...", toUserName]);
-        }
-      } catch {
-        setPathResult([fromUserName, "Dr. Arun Mehta", "Neha Singh", toUserName]);
-      }
+    if (!fromUserId || !toUserId) return;
+    setPathLoading(true);
+    setPathResult(null);
+    setPathHops(null);
+    try {
+      const res = await apiClient.get<{ path: string[]; hops: number }>(
+        `/api/network/shortest-path?from=${fromUserId}&to=${toUserId}`
+      );
+      setPathResult(res.path || []);
+      setPathHops(res.hops ?? (res.path ? res.path.length - 1 : null));
+    } catch {
+      setPathResult(null);
+      setPathHops(null);
+    } finally {
+      setPathLoading(false);
     }
   };
 
+  // Prepare chart data
+  const centralityChartData = centralityData.map((d) => ({
+    name: d.display_name.split(" ").slice(-1)[0],
+    connections: d.connections_count,
+  }));
+
+  const companiesChartData = companiesData.map((c) => ({
+    name: c.company,
+    count: c.alumni_count,
+  }));
+
+  // Build skill comparison data from the trends response
+  const skillChartData = (() => {
+    if (!skillTrends) return [];
+    const allSkills = new Set([
+      ...skillTrends.most_required_in_opportunities,
+      ...skillTrends.most_common_among_alumni,
+    ]);
+    return Array.from(allSkills).slice(0, 8).map((skill) => ({
+      skill,
+      demand: skillTrends.most_required_in_opportunities.includes(skill) ? 80 : 30,
+      supply: skillTrends.most_common_among_alumni.includes(skill) ? 75 : 25,
+    }));
+  })();
+
+  const batchChartData = batchData.map((b) => ({
+    batch: b.batch,
+    count: b.total_alumni,
+  }));
+
+  // Centrality table columns
   const centralityColumns: Column<CentralityItem>[] = [
-    { key: "name", label: "Name" },
-    { key: "field", label: "Field" },
+    { key: "display_name", label: "Name" },
     {
-      key: "connections",
+      key: "connections_count",
       label: "Connections",
-      render: (item) => (
-        <Badge variant="secondary" className="font-mono">{item.connections}</Badge>
-      ),
+      render: (item) => <Badge variant="secondary" className="font-mono">{item.connections_count}</Badge>,
+    },
+    {
+      key: "centrality_score",
+      label: "Score",
+      render: (item) => <span className="text-sm">{item.centrality_score?.toFixed(2)}</span>,
     },
   ];
 
-  const centralityChartData = centralityData.map((d) => ({
-    name: d.name.split(" ").slice(-1)[0],
-    connections: d.connections,
-  }));
+  // Batch summary stats
+  const avgConnections = batchData.length
+    ? (batchData.reduce((s, b) => s + b.avg_connections, 0) / batchData.length).toFixed(1)
+    : "—";
+  const topCompanyFromBatch = batchData.flatMap((b) => b.top_companies)[0] || "—";
 
   return (
     <div className="space-y-6">
@@ -133,25 +193,29 @@ export default function AnalyticsPage() {
           <TabsTrigger value="batch">Batch Analysis</TabsTrigger>
         </TabsList>
 
+        {/* Influential Alumni */}
         <TabsContent value="influential" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard title="Most Connected Alumni" description="By number of connections">
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={centralityChartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis type="number" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                  <YAxis dataKey="name" type="category" width={80} tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                  <Bar dataKey="connections" fill="hsl(221, 83%, 53%)" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-            <div>
-              <DataTable columns={centralityColumns} data={centralityData as unknown as CentralityItem[]} />
+          {loadingStates.centrality ? (
+            <Skeleton className="h-72 rounded-xl" />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChartCard title="Most Connected Alumni" description="By number of connections">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={centralityChartData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                    <YAxis dataKey="name" type="category" width={80} tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                    <Bar dataKey="connections" fill="hsl(221, 83%, 53%)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+              <DataTable columns={centralityColumns} data={centralityData} emptyMessage="No centrality data" />
             </div>
-          </div>
+          )}
         </TabsContent>
 
+        {/* Shortest Path */}
         <TabsContent value="path" className="space-y-6">
           <Card>
             <CardHeader>
@@ -161,102 +225,113 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                 <div className="space-y-2">
                   <Label>From User</Label>
-                  <UserSearchSelect
-                    users={allUsers}
-                    value={fromUserId}
-                    onChange={(id, name) => { setFromUserId(id); setFromUserName(name); }}
-                    placeholder="Select user..."
-                    loading={usersLoading}
-                  />
+                  <UserSearchSelect users={allUsers} value={fromUserId} onChange={(id, name) => { setFromUserId(id); setFromUserName(name); }} placeholder="Select user..." loading={usersLoading} />
                 </div>
                 <div className="space-y-2">
                   <Label>To User</Label>
-                  <UserSearchSelect
-                    users={allUsers}
-                    value={toUserId}
-                    onChange={(id, name) => { setToUserId(id); setToUserName(name); }}
-                    placeholder="Select user..."
-                    loading={usersLoading}
-                  />
+                  <UserSearchSelect users={allUsers} value={toUserId} onChange={(id, name) => { setToUserId(id); setToUserName(name); }} placeholder="Select user..." loading={usersLoading} />
                 </div>
-                <Button onClick={handleFindPath} disabled={!fromUserId || !toUserId}>Find Path</Button>
+                <Button onClick={handleFindPath} disabled={!fromUserId || !toUserId || pathLoading}>
+                  {pathLoading ? "Finding..." : "Find Path"}
+                </Button>
               </div>
 
-              {pathResult && (
+              {pathResult && pathResult.length > 0 && (
                 <div className="mt-6 p-4 rounded-lg bg-muted/50">
-                  <p className="text-sm font-medium mb-3">Path Found ({pathResult.length - 1} steps):</p>
+                  <p className="text-sm font-medium mb-3">Path Found ({pathHops ?? pathResult.length - 1} hops):</p>
                   <div className="flex items-center gap-2 flex-wrap">
                     {pathResult.map((node, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <Badge variant={i === 0 || i === pathResult.length - 1 ? "default" : "secondary"}>
-                          {node}
-                        </Badge>
+                        <Badge variant={i === 0 || i === pathResult.length - 1 ? "default" : "secondary"}>{node}</Badge>
                         {i < pathResult.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
+              {pathResult && pathResult.length === 0 && (
+                <div className="mt-6 p-4 rounded-lg bg-muted/50 text-sm text-muted-foreground">No path found between these users.</div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* Top Companies */}
         <TabsContent value="companies" className="space-y-6">
-          <ChartCard title="Top Companies" description="Companies with most alumni">
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={topCompanies}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="name" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                <Bar dataKey="count" fill="hsl(199, 89%, 48%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          {loadingStates.companies ? (
+            <Skeleton className="h-96 rounded-xl" />
+          ) : (
+            <ChartCard title="Top Companies" description="Companies with most alumni">
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={companiesChartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="name" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                  <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                  <Bar dataKey="count" fill="hsl(199, 89%, 48%)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          )}
         </TabsContent>
 
+        {/* Skill Trends */}
         <TabsContent value="skills" className="space-y-6">
-          <ChartCard title="Skill Demand vs Supply" description="Gap analysis across top skills">
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={skillTrends}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="skill" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                <Bar dataKey="demand" fill="hsl(221, 83%, 53%)" name="Demand" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="supply" fill="hsl(142, 76%, 36%)" name="Supply" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          {loadingStates.skills ? (
+            <Skeleton className="h-96 rounded-xl" />
+          ) : (
+            <>
+              <ChartCard title="Skill Demand vs Supply" description="Gap analysis across top skills">
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={skillChartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="skill" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                    <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                    <Bar dataKey="demand" fill="hsl(221, 83%, 53%)" name="Demand" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="supply" fill="hsl(142, 76%, 36%)" name="Supply" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+              {skillTrends?.gap && skillTrends.gap.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Skill Gap (In demand but low supply)</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {skillTrends.gap.map((s) => <Badge key={s} variant="destructive">{s}</Badge>)}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
         </TabsContent>
 
+        {/* Batch Analysis */}
         <TabsContent value="batch" className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatsCard title="Avg Connections" value="12.4" change="Per alumni member" icon={Network} />
-            <StatsCard title="Top Company" value="Google" change="45 alumni placed" icon={Building2} />
-            <StatsCard title="Placement Rate" value="94%" change="+2.3% vs last year" changeType="positive" icon={TrendingUp} />
-          </div>
-
-          <ChartCard title="Batch-wise Distribution" description="Alumni by graduation year">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={[
-                  { batch: "2020", count: 120 },
-                  { batch: "2021", count: 145 },
-                  { batch: "2022", count: 168 },
-                  { batch: "2023", count: 190 },
-                  { batch: "2024", count: 210 },
-                  { batch: "2025", count: 185 },
-                ]}
-              >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="batch" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                <Bar dataKey="count" fill="hsl(262, 83%, 58%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          {loadingStates.batch ? (
+            <Skeleton className="h-72 rounded-xl" />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <StatsCard title="Avg Connections" value={avgConnections} change="Per alumni member" icon={Network} />
+                <StatsCard title="Top Company" value={topCompanyFromBatch} icon={Building2} />
+                <StatsCard title="Total Batches" value={String(batchData.length)} change="Tracked batches" icon={TrendingUp} />
+              </div>
+              <ChartCard title="Batch-wise Distribution" description="Alumni by batch">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={batchChartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="batch" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                    <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                    <Bar dataKey="count" fill="hsl(262, 83%, 58%)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
