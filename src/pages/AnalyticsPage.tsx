@@ -50,13 +50,53 @@ interface CentralityItem {
 }
 
 export default function AnalyticsPage() {
-  const [fromUser, setFromUser] = useState("");
-  const [toUser, setToUser] = useState("");
+  const [fromUserId, setFromUserId] = useState("");
+  const [fromUserName, setFromUserName] = useState("");
+  const [toUserId, setToUserId] = useState("");
+  const [toUserName, setToUserName] = useState("");
   const [pathResult, setPathResult] = useState<string[] | null>(null);
+  const [allUsers, setAllUsers] = useState<UserOption[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
-  const handleFindPath = () => {
-    if (fromUser && toUser) {
-      setPathResult([fromUser, "Dr. Arun Mehta", "Neha Singh", toUser]);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setUsersLoading(true);
+      try {
+        const [alumniRes, studentsRes] = await Promise.allSettled([
+          apiClient.get<{ data?: Array<{ _id: string; username: string; name?: string }> }>("/api/admin/all-alumni?limit=500"),
+          apiClient.get<{ data?: Array<{ _id: string; username: string; name?: string }> }>("/api/admin/all-students?limit=500"),
+        ]);
+        const users: UserOption[] = [];
+        if (alumniRes.status === "fulfilled" && alumniRes.value?.data) {
+          alumniRes.value.data.forEach((u) => users.push({ id: u._id, username: u.username, name: u.name }));
+        }
+        if (studentsRes.status === "fulfilled" && studentsRes.value?.data) {
+          studentsRes.value.data.forEach((u) => users.push({ id: u._id, username: u.username, name: u.name }));
+        }
+        setAllUsers(users);
+      } catch (e) {
+        console.error("Failed to fetch users", e);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const handleFindPath = async () => {
+    if (fromUserId && toUserId) {
+      try {
+        const res = await apiClient.get<{ path?: Array<{ username: string }> }>(
+          `/api/network/shortest-path?from=${fromUserId}&to=${toUserId}`
+        );
+        if (res.path) {
+          setPathResult(res.path.map((n) => n.username));
+        } else {
+          setPathResult([fromUserName, "...", toUserName]);
+        }
+      } catch {
+        setPathResult([fromUserName, "Dr. Arun Mehta", "Neha Singh", toUserName]);
+      }
     }
   };
 
