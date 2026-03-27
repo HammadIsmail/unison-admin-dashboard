@@ -39,19 +39,19 @@ export const apiClient = {
     return response.json();
   },
 
-  get<T>(endpoint: string) {
+  get<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint);
   },
 
-  post<T>(endpoint: string, body: unknown) {
+  post<T>(endpoint: string, body: unknown): Promise<T> {
     return this.request<T>(endpoint, { method: "POST", body: JSON.stringify(body) });
   },
 
-  patch<T>(endpoint: string, body?: unknown) {
+  patch<T>(endpoint: string, body?: unknown): Promise<T> {
     return this.request<T>(endpoint, { method: "PATCH", body: body ? JSON.stringify(body) : undefined });
   },
 
-  delete<T>(endpoint: string) {
+  delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: "DELETE" });
   },
 };
