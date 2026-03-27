@@ -1,4 +1,4 @@
-const API_BASE_URL = "";
+const API_BASE_URL = "https://unison-backend-lxmu.onrender.com";
 
 export const getAuthToken = (): string | null => {
   return localStorage.getItem("unison_token");
