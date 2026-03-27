@@ -1,67 +1,85 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DataTable, type Column } from "@/components/dashboard/DataTable";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { apiClient } from "@/lib/api";
 
 interface Alumni {
   id: string;
-  name: string;
-  email: string;
+  display_name: string;
   company: string;
   role: string;
+  profile_picture?: string;
   [key: string]: unknown;
 }
-
-const mockAlumni: Alumni[] = Array.from({ length: 42 }, (_, i) => ({
-  id: String(i + 1),
-  name: ["Arun Mehta", "Neha Singh", "Karthik Rajan", "Pooja Reddy", "Amit Shah", "Divya Nair", "Vikram Joshi"][i % 7],
-  email: `user${i + 1}@example.com`,
-  company: ["Google", "Microsoft", "Amazon", "Flipkart", "Infosys", "TCS", "Wipro"][i % 7],
-  role: ["SDE", "Product Manager", "Data Scientist", "Designer", "DevOps Engineer"][i % 5],
-}));
 
 const PAGE_SIZE = 10;
 
 export default function AlumniPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [data, setData] = useState<Alumni[]>([]);
+  const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [data, setData] = useState(mockAlumni);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return data.filter((a) => a.name.toLowerCase().includes(q) || a.company.toLowerCase().includes(q) || a.email.toLowerCase().includes(q));
-  }, [search, data]);
+  const fetchAlumni = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get<{ total: number; page: number; data: Alumni[] }>(
+        `/api/admin/all-alumni?page=${page}&limit=${PAGE_SIZE}&search=${encodeURIComponent(search)}`
+      );
+      setData(res.data || []);
+      setTotal(res.total || 0);
+    } catch {
+      toast({ title: "Failed to load alumni", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  useEffect(() => {
+    const debounce = setTimeout(fetchAlumni, 300);
+    return () => clearTimeout(debounce);
+  }, [fetchAlumni]);
 
-  const handleDelete = () => {
-    setData((prev) => prev.filter((a) => a.id !== deleteId));
-    toast({ title: "User deleted" });
-    setDeleteId(null);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await apiClient.del(`/api/admin/remove-account/${deleteId}`);
+      toast({ title: "User deleted" });
+      fetchAlumni();
+    } catch {
+      toast({ title: "Failed to delete user", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
   };
 
   const columns: Column<Alumni>[] = [
     {
-      key: "name",
+      key: "display_name",
       label: "Profile",
       render: (item) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
+            {item.profile_picture && <AvatarImage src={item.profile_picture} />}
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-              {item.name.split(" ").map((n) => n[0]).join("")}
+              {item.display_name?.split(" ").map((n) => n[0]).join("") || "?"}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <p className="text-sm font-medium">{item.name}</p>
-            <p className="text-xs text-muted-foreground">{item.email}</p>
-          </div>
+          <p className="text-sm font-medium">{item.display_name}</p>
         </div>
       ),
     },
@@ -83,7 +101,7 @@ export default function AlumniPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Alumni</h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} alumni members</p>
+          <p className="text-sm text-muted-foreground mt-1">{total} alumni members</p>
         </div>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -91,7 +109,11 @@ export default function AlumniPage() {
         </div>
       </div>
 
-      <DataTable columns={columns} data={pageData} emptyMessage="No alumni found" />
+      {loading ? (
+        <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
+      ) : (
+        <DataTable columns={columns} data={data} emptyMessage="No alumni found" />
+      )}
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
@@ -112,7 +134,7 @@ export default function AlumniPage() {
         onOpenChange={() => setDeleteId(null)}
         title="Delete Alumni"
         description="This action cannot be undone. The user account will be permanently removed."
-        confirmLabel="Delete"
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
         variant="destructive"
         onConfirm={handleDelete}
       />

@@ -1,72 +1,94 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DataTable, type Column } from "@/components/dashboard/DataTable";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { apiClient } from "@/lib/api";
 
 interface Student {
   id: string;
-  name: string;
-  email: string;
-  rollNumber: string;
-  semester: string;
+  display_name: string;
+  roll_number: string;
+  semester: number;
+  profile_picture?: string;
   [key: string]: unknown;
 }
-
-const mockStudents: Student[] = Array.from({ length: 30 }, (_, i) => ({
-  id: String(i + 1),
-  name: ["Ravi Kumar", "Meera Jain", "Suresh Babu", "Fatima Khan", "Arjun Pillai"][i % 5],
-  email: `student${i + 1}@unison.edu`,
-  rollNumber: `UN${String(2024000 + i + 1)}`,
-  semester: `Semester ${(i % 8) + 1}`,
-}));
 
 const PAGE_SIZE = 10;
 
 export default function StudentsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [data, setData] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [data, setData] = useState(mockStudents);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return data.filter((s) => s.name.toLowerCase().includes(q) || s.rollNumber.toLowerCase().includes(q));
-  }, [search, data]);
+  const fetchStudents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get<{ total: number; page: number; data: Student[] }>(
+        `/api/admin/all-students?page=${page}&limit=${PAGE_SIZE}&search=${encodeURIComponent(search)}`
+      );
+      setData(res.data || []);
+      setTotal(res.total || 0);
+    } catch {
+      toast({ title: "Failed to load students", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const pageData = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  useEffect(() => {
+    const debounce = setTimeout(fetchStudents, 300);
+    return () => clearTimeout(debounce);
+  }, [fetchStudents]);
 
-  const handleDelete = () => {
-    setData((prev) => prev.filter((s) => s.id !== deleteId));
-    toast({ title: "Student deleted" });
-    setDeleteId(null);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await apiClient.del(`/api/admin/remove-account/${deleteId}`);
+      toast({ title: "Student deleted" });
+      fetchStudents();
+    } catch {
+      toast({ title: "Failed to delete student", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
   };
 
   const columns: Column<Student>[] = [
     {
-      key: "name",
+      key: "display_name",
       label: "Student",
       render: (item) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
+            {item.profile_picture && <AvatarImage src={item.profile_picture} />}
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-              {item.name.split(" ").map((n) => n[0]).join("")}
+              {item.display_name?.split(" ").map((n) => n[0]).join("") || "?"}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <p className="text-sm font-medium">{item.name}</p>
-            <p className="text-xs text-muted-foreground">{item.email}</p>
-          </div>
+          <p className="text-sm font-medium">{item.display_name}</p>
         </div>
       ),
     },
-    { key: "rollNumber", label: "Roll Number" },
-    { key: "semester", label: "Semester" },
+    { key: "roll_number", label: "Roll Number" },
+    {
+      key: "semester",
+      label: "Semester",
+      render: (item) => <span>Semester {item.semester}</span>,
+    },
     {
       key: "actions",
       label: "Actions",
@@ -83,7 +105,7 @@ export default function StudentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Students</h1>
-          <p className="text-sm text-muted-foreground mt-1">{filtered.length} students enrolled</p>
+          <p className="text-sm text-muted-foreground mt-1">{total} students enrolled</p>
         </div>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -91,7 +113,11 @@ export default function StudentsPage() {
         </div>
       </div>
 
-      <DataTable columns={columns} data={pageData} emptyMessage="No students found" />
+      {loading ? (
+        <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
+      ) : (
+        <DataTable columns={columns} data={data} emptyMessage="No students found" />
+      )}
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
@@ -112,7 +138,7 @@ export default function StudentsPage() {
         onOpenChange={() => setDeleteId(null)}
         title="Delete Student"
         description="This action cannot be undone. The student account will be permanently removed."
-        confirmLabel="Delete"
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
         variant="destructive"
         onConfirm={handleDelete}
       />

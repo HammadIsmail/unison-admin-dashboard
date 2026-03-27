@@ -1,9 +1,23 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { getAuthToken, removeAuthToken, setAuthToken } from "./api";
+import { apiClient, getAuthToken, removeAuthToken, setAuthToken } from "./api";
+
+interface UserProfile {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string;
+  role: string;
+  degree?: string;
+  roll_number?: string;
+  batch?: string;
+  graduation_year?: number;
+  phone?: string;
+  profile_picture?: string;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: { name: string; email: string; role: string } | null;
+  user: UserProfile | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -17,23 +31,44 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+const STORED_USER_KEY = "unison_user";
+
+function getStoredUser(): UserProfile | null {
+  try {
+    const raw = localStorage.getItem(STORED_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!getAuthToken());
-  const [user, setUser] = useState<AuthContextType["user"]>(() =>
-    getAuthToken() ? { name: "Admin User", email: "admin@unison.edu", role: "admin" } : null
+  const [user, setUser] = useState<UserProfile | null>(() =>
+    getAuthToken() ? getStoredUser() : null
   );
 
-  const login = async (_email: string, _password: string) => {
-    // In production, call /api/auth/login and get the token
-    // For now, simulate login
-    const mockToken = "mock-jwt-token-" + Date.now();
-    setAuthToken(mockToken);
-    setUser({ name: "Admin User", email: _email, role: "admin" });
+  const login = async (email: string, password: string) => {
+    const res = await apiClient.post<{
+      token: string;
+      role: string;
+      account_status: string;
+      profile: UserProfile;
+    }>("/api/auth/login", { email, password });
+
+    if (res.account_status !== "approved") {
+      throw new Error("Account not approved yet.");
+    }
+
+    setAuthToken(res.token);
+    localStorage.setItem(STORED_USER_KEY, JSON.stringify(res.profile));
+    setUser(res.profile);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
     removeAuthToken();
+    localStorage.removeItem(STORED_USER_KEY);
     setUser(null);
     setIsAuthenticated(false);
   };

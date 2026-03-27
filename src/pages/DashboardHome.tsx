@@ -1,28 +1,29 @@
+import { useEffect, useState } from "react";
 import { Users, GraduationCap, UserCheck, Briefcase, Building2 } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
+import { apiClient } from "@/lib/api";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const barData = [
-  { month: "Jan", alumni: 120, students: 80 },
-  { month: "Feb", alumni: 150, students: 95 },
-  { month: "Mar", alumni: 180, students: 110 },
-  { month: "Apr", alumni: 200, students: 130 },
-  { month: "May", alumni: 240, students: 145 },
-  { month: "Jun", alumni: 280, students: 160 },
+interface DashboardStats {
+  total_alumni: number;
+  total_students: number;
+  pending_accounts: number;
+  total_opportunities: number;
+  total_companies: number;
+  most_common_skills: string[];
+}
+
+const PIE_COLORS = [
+  "hsl(221, 83%, 53%)",
+  "hsl(199, 89%, 48%)",
+  "hsl(142, 76%, 36%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(262, 83%, 58%)",
 ];
 
 const lineData = [
@@ -34,23 +35,27 @@ const lineData = [
   { month: "Dec", users: 640 },
 ];
 
-const pieData = [
-  { name: "React", value: 35 },
-  { name: "Python", value: 25 },
-  { name: "Machine Learning", value: 20 },
-  { name: "Cloud/AWS", value: 12 },
-  { name: "UI/UX", value: 8 },
-];
-
-const PIE_COLORS = [
-  "hsl(221, 83%, 53%)",
-  "hsl(199, 89%, 48%)",
-  "hsl(142, 76%, 36%)",
-  "hsl(38, 92%, 50%)",
-  "hsl(262, 83%, 58%)",
-];
-
 export default function DashboardHome() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiClient.get<DashboardStats>("/api/admin/dashboard-stats")
+      .then(setStats)
+      .catch(() => console.error("Failed to load dashboard stats"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const barData = stats ? [
+    { label: "Alumni", count: stats.total_alumni },
+    { label: "Students", count: stats.total_students },
+  ] : [];
+
+  const pieData = stats?.most_common_skills?.map((skill, i) => ({
+    name: skill,
+    value: Math.max(30 - i * 5, 5),
+  })) || [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -59,30 +64,30 @@ export default function DashboardHome() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatsCard title="Total Alumni" value="2,847" change="+12.5% from last month" changeType="positive" icon={Users} />
-        <StatsCard title="Total Students" value="1,234" change="+8.2% from last month" changeType="positive" icon={GraduationCap} />
-        <StatsCard title="Pending Accounts" value="23" change="5 new today" changeType="neutral" icon={UserCheck} />
-        <StatsCard title="Opportunities" value="156" change="+3 this week" changeType="positive" icon={Briefcase} />
-        <StatsCard title="Companies" value="89" change="+2 this month" changeType="positive" icon={Building2} />
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-xl" />
+          ))
+        ) : (
+          <>
+            <StatsCard title="Total Alumni" value={String(stats?.total_alumni ?? 0)} icon={Users} />
+            <StatsCard title="Total Students" value={String(stats?.total_students ?? 0)} icon={GraduationCap} />
+            <StatsCard title="Pending Accounts" value={String(stats?.pending_accounts ?? 0)} icon={UserCheck} />
+            <StatsCard title="Opportunities" value={String(stats?.total_opportunities ?? 0)} icon={Briefcase} />
+            <StatsCard title="Companies" value={String(stats?.total_companies ?? 0)} icon={Building2} />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title="Alumni vs Students" description="Monthly registration comparison">
+        <ChartCard title="Alumni vs Students" description="Total count comparison">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={barData}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(215, 16%, 47%)" }} />
-              <YAxis className="text-xs" tick={{ fill: "hsl(215, 16%, 47%)" }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-              />
-              <Bar dataKey="alumni" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="students" fill="hsl(199, 89%, 48%)" radius={[4, 4, 0, 0]} />
+              <XAxis dataKey="label" tick={{ fill: "hsl(215, 16%, 47%)" }} />
+              <YAxis tick={{ fill: "hsl(215, 16%, 47%)" }} />
+              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+              <Bar dataKey="count" fill="hsl(221, 83%, 53%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -93,14 +98,7 @@ export default function DashboardHome() {
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="month" tick={{ fill: "hsl(215, 16%, 47%)" }} />
               <YAxis tick={{ fill: "hsl(215, 16%, 47%)" }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-              />
+              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
               <Line type="monotone" dataKey="users" stroke="hsl(221, 83%, 53%)" strokeWidth={2} dot={{ fill: "hsl(221, 83%, 53%)" }} />
             </LineChart>
           </ResponsiveContainer>
@@ -111,33 +109,18 @@ export default function DashboardHome() {
         <ChartCard title="Most Common Skills" description="Top skills across alumni network">
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={4}
-                dataKey="value"
-              >
+              <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={4} dataKey="value">
                 {pieData.map((_, index) => (
                   <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-              />
+              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
             </PieChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-3 mt-2 justify-center">
             {pieData.map((item, i) => (
               <div key={item.name} className="flex items-center gap-1.5 text-xs">
-                <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[i] }} />
+                <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
                 <span className="text-muted-foreground">{item.name}</span>
               </div>
             ))}
