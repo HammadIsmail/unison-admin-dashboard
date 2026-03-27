@@ -59,7 +59,7 @@ export default function PendingAccountsPage() {
     if (!rejectId) return;
     setActionLoading(true);
     try {
-      await apiClient.patch(`/api/admin/reject-account/${rejectId}`, { reason });
+      await apiClient.patch(`/api/admin/reject-account/${rejectId}`, { rejection_reason: reason });
       setAccounts((prev) => prev.filter((a) => a.id !== rejectId));
       toast({ title: "Account rejected", description: "Rejection reason has been sent." });
     } catch {
