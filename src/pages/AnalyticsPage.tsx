@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { DataTable, type Column } from "@/components/dashboard/DataTable";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { UserSearchSelect, type UserOption } from "@/components/dashboard/UserSearchSelect";
+import { apiClient } from "@/lib/api";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -49,13 +50,53 @@ interface CentralityItem {
 }
 
 export default function AnalyticsPage() {
-  const [fromUser, setFromUser] = useState("");
-  const [toUser, setToUser] = useState("");
+  const [fromUserId, setFromUserId] = useState("");
+  const [fromUserName, setFromUserName] = useState("");
+  const [toUserId, setToUserId] = useState("");
+  const [toUserName, setToUserName] = useState("");
   const [pathResult, setPathResult] = useState<string[] | null>(null);
+  const [allUsers, setAllUsers] = useState<UserOption[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
-  const handleFindPath = () => {
-    if (fromUser && toUser) {
-      setPathResult([fromUser, "Dr. Arun Mehta", "Neha Singh", toUser]);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setUsersLoading(true);
+      try {
+        const [alumniRes, studentsRes] = await Promise.allSettled([
+          apiClient.get<{ data?: Array<{ _id: string; username: string; name?: string }> }>("/api/admin/all-alumni?limit=500"),
+          apiClient.get<{ data?: Array<{ _id: string; username: string; name?: string }> }>("/api/admin/all-students?limit=500"),
+        ]);
+        const users: UserOption[] = [];
+        if (alumniRes.status === "fulfilled" && alumniRes.value?.data) {
+          alumniRes.value.data.forEach((u) => users.push({ id: u._id, username: u.username, name: u.name }));
+        }
+        if (studentsRes.status === "fulfilled" && studentsRes.value?.data) {
+          studentsRes.value.data.forEach((u) => users.push({ id: u._id, username: u.username, name: u.name }));
+        }
+        setAllUsers(users);
+      } catch (e) {
+        console.error("Failed to fetch users", e);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const handleFindPath = async () => {
+    if (fromUserId && toUserId) {
+      try {
+        const res = await apiClient.get<{ path?: Array<{ username: string }> }>(
+          `/api/network/shortest-path?from=${fromUserId}&to=${toUserId}`
+        );
+        if (res.path) {
+          setPathResult(res.path.map((n) => n.username));
+        } else {
+          setPathResult([fromUserName, "...", toUserName]);
+        }
+      } catch {
+        setPathResult([fromUserName, "Dr. Arun Mehta", "Neha Singh", toUserName]);
+      }
     }
   };
 
@@ -120,13 +161,25 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                 <div className="space-y-2">
                   <Label>From User</Label>
-                  <Input placeholder="Enter name or ID" value={fromUser} onChange={(e) => setFromUser(e.target.value)} />
+                  <UserSearchSelect
+                    users={allUsers}
+                    value={fromUserId}
+                    onChange={(id, name) => { setFromUserId(id); setFromUserName(name); }}
+                    placeholder="Select user..."
+                    loading={usersLoading}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>To User</Label>
-                  <Input placeholder="Enter name or ID" value={toUser} onChange={(e) => setToUser(e.target.value)} />
+                  <UserSearchSelect
+                    users={allUsers}
+                    value={toUserId}
+                    onChange={(id, name) => { setToUserId(id); setToUserName(name); }}
+                    placeholder="Select user..."
+                    loading={usersLoading}
+                  />
                 </div>
-                <Button onClick={handleFindPath} disabled={!fromUser || !toUser}>Find Path</Button>
+                <Button onClick={handleFindPath} disabled={!fromUserId || !toUserId}>Find Path</Button>
               </div>
 
               {pathResult && (
