@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 export interface Column<T> {
   key: string;
@@ -20,6 +21,7 @@ interface DataTableProps<T> {
   data: T[];
   loading?: boolean;
   emptyMessage?: string;
+  onRowClick?: (item: T) => void;
 }
 
 export function DataTable<T extends Record<string, unknown>>({
@@ -27,6 +29,7 @@ export function DataTable<T extends Record<string, unknown>>({
   data,
   loading,
   emptyMessage = "No data found",
+  onRowClick,
 }: DataTableProps<T>) {
   if (loading) {
     return (
@@ -65,7 +68,14 @@ export function DataTable<T extends Record<string, unknown>>({
         </TableHeader>
         <TableBody>
           {data.map((item, idx) => (
-            <TableRow key={idx} className="hover:bg-muted/30 transition-colors">
+            <TableRow 
+              key={idx} 
+              className={cn(
+                "hover:bg-muted/30 transition-colors",
+                onRowClick && "cursor-pointer"
+              )}
+              onClick={() => onRowClick?.(item)}
+            >
               {columns.map((col) => (
                 <TableCell key={col.key}>
                   {col.render ? col.render(item) : String(item[col.key] ?? "")}

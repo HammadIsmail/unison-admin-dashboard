@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { Users, GraduationCap, UserCheck, Briefcase, Building2 } from "lucide-react";
+import { 
+  Users, GraduationCap, UserCheck, Briefcase, Building2,
+  UserPlus, CheckCircle2, MessageSquare, RefreshCw, AlertCircle
+} from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { apiClient } from "@/lib/api";
@@ -8,6 +11,14 @@ import {
   LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+
+interface Activity {
+  id: string;
+  type: string;
+  description: string;
+  created_at: string;
+}
 
 interface DashboardStats {
   total_alumni: number;
@@ -37,13 +48,26 @@ const lineData = [
 
 export default function DashboardHome() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiClient.get<DashboardStats>("/api/admin/dashboard-stats")
-      .then(setStats)
-      .catch(() => console.error("Failed to load dashboard stats"))
-      .finally(() => setLoading(false));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [statsData, activityData] = await Promise.all([
+          apiClient.get<DashboardStats>("/api/admin/dashboard-stats"),
+          apiClient.get<Activity[]>("/api/admin/recent-activity?limit=6")
+        ]);
+        setStats(statsData);
+        setActivities(activityData);
+      } catch (error) {
+        console.error("Failed to load dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const barData = stats ? [
@@ -128,26 +152,64 @@ export default function DashboardHome() {
         </ChartCard>
 
         <ChartCard title="Recent Activity" description="Latest platform events" className="lg:col-span-2">
-          <div className="space-y-3">
-            {[
-              { action: "New alumni registered", user: "Sarah Chen", time: "2 min ago" },
-              { action: "Account approved", user: "John Smith", time: "15 min ago" },
-              { action: "New opportunity posted", user: "TechCorp", time: "1 hour ago" },
-              { action: "Student registered", user: "Alex Kumar", time: "2 hours ago" },
-              { action: "Profile updated", user: "Maria Garcia", time: "3 hours ago" },
-              { action: "New company added", user: "InnovateTech", time: "5 hours ago" },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-2.5 border-b last:border-0">
-                <div>
-                  <p className="text-sm font-medium">{item.action}</p>
-                  <p className="text-xs text-muted-foreground">{item.user}</p>
-                </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap">{item.time}</span>
+          <div className="space-y-4">
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              ))
+            ) : activities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground italic text-sm">
+                No recent activity logged.
               </div>
-            ))}
+            ) : (
+              activities.map((item) => {
+                const Icon = getActivityIcon(item.type);
+                return (
+                  <div key={item.id} className="flex items-start gap-4 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
+                    <div className={cn(
+                      "p-2 rounded-full shrink-0",
+                      getActivityColor(item.type)
+                    )}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-none">{item.description}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-bold">
+                        {item.type.replace(/_/g, " ")}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap pt-0.5">
+                      {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                );
+              })
+            )}
           </div>
         </ChartCard>
       </div>
     </div>
   );
+}
+
+function getActivityIcon(type: string) {
+  switch (type) {
+    case "USER_REGISTERED": return UserPlus;
+    case "ACCOUNT_APPROVED": return CheckCircle2;
+    case "OPPORTUNITY_POSTED": return Briefcase;
+    case "PROFILE_UPDATED": return RefreshCw;
+    case "ACCOUNT_REJECTED": return AlertCircle;
+    default: return MessageSquare;
+  }
+}
+
+function getActivityColor(type: string) {
+  switch (type) {
+    case "USER_REGISTERED": return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
+    case "ACCOUNT_APPROVED": return "bg-green-500/10 text-green-600 dark:text-green-400";
+    case "OPPORTUNITY_POSTED": return "bg-purple-500/10 text-purple-600 dark:text-purple-400";
+    case "PROFILE_UPDATED": return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+    case "ACCOUNT_REJECTED": return "bg-destructive/10 text-destructive";
+    default: return "bg-muted text-muted-foreground";
+  }
 }

@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserSearchSelect, type UserOption } from "@/components/dashboard/UserSearchSelect";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiClient } from "@/lib/api";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -96,10 +97,18 @@ export default function AnalyticsPage() {
         ]);
         const users: UserOption[] = [];
         if (alumniRes.status === "fulfilled" && alumniRes.value?.data) {
-          alumniRes.value.data.forEach((u) => users.push({ id: u.id, username: u.username || u.display_name, name: u.display_name }));
+          alumniRes.value.data.forEach((u) => users.push({ 
+            id: u.id, 
+            username: u.username || u.display_name || "Unknown", 
+            name: u.display_name || "" 
+          }));
         }
         if (studentsRes.status === "fulfilled" && studentsRes.value?.data) {
-          studentsRes.value.data.forEach((u) => users.push({ id: u.id, username: u.username || u.display_name, name: u.display_name }));
+          studentsRes.value.data.forEach((u) => users.push({ 
+            id: u.id, 
+            username: u.username || u.display_name || "Unknown", 
+            name: u.display_name || "" 
+          }));
         }
         setAllUsers(users);
       } catch {}
@@ -282,28 +291,46 @@ export default function AnalyticsPage() {
             <Skeleton className="h-96 rounded-xl" />
           ) : (
             <>
-              <ChartCard title="Skill Demand vs Supply" description="Gap analysis across top skills">
-                <ResponsiveContainer width="100%" height={350}>
-                  <BarChart data={skillChartData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="skill" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                    <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                    <Bar dataKey="demand" fill="hsl(221, 83%, 53%)" name="Demand" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="supply" fill="hsl(142, 76%, 36%)" name="Supply" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-              {skillTrends?.gap && skillTrends.gap.length > 0 && (
-                <Card>
-                  <CardHeader><CardTitle className="text-base">Skill Gap (In demand but low supply)</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {skillTrends.gap.map((s) => <Badge key={s} variant="destructive">{s}</Badge>)}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <ChartCard title="Skill Demand vs Supply" description="Market analysis across top skills" className="lg:col-span-2">
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={skillChartData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="skill" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 11 }} />
+                      <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 11 }} />
+                      <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                      <Bar dataKey="demand" fill="hsl(var(--primary))" name="Demand (%)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="supply" fill="hsl(var(--success))" name="Supply (%)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+
+                <Card className="flex flex-col">
+                  <CardHeader>
+                    <CardTitle className="text-base">Market Gap Analysis</CardTitle>
+                    <p className="text-xs text-muted-foreground">Skills with high demand but low talent supply</p>
+                  </CardHeader>
+                  <CardContent className="flex-1 space-y-4">
+                    {skillTrends?.gap && skillTrends.gap.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {skillTrends.gap.map((s) => (
+                          <Badge key={s} variant="destructive" className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20">
+                            {s}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic text-center py-10">No significant gaps detected.</p>
+                    )}
+                    <div className="pt-4 border-t mt-auto">
+                      <p className="text-xs font-medium mb-2 uppercase tracking-wider text-muted-foreground">Actionable Insight</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Encourage students to pick up {skillTrends?.gap?.[0] || "emerging"} technologies to align with current market requirements.
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              </div>
             </>
           )}
         </TabsContent>
@@ -319,17 +346,55 @@ export default function AnalyticsPage() {
                 <StatsCard title="Top Company" value={topCompanyFromBatch} icon={Building2} />
                 <StatsCard title="Total Batches" value={String(batchData.length)} change="Tracked batches" icon={TrendingUp} />
               </div>
-              <ChartCard title="Batch-wise Distribution" description="Alumni by batch">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={batchChartData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="batch" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                    <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                    <Bar dataKey="count" fill="hsl(262, 83%, 58%)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ChartCard title="Batch-wise Distribution" description="Alumni by batch">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={batchChartData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="batch" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 11 }} />
+                      <YAxis tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 11 }} />
+                      <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                      <Bar dataKey="count" fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Batch Success Insights</CardTitle>
+                    <p className="text-xs text-muted-foreground">Top companies & primary career roles</p>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[300px] pr-4">
+                      <div className="space-y-6">
+                        {batchData.map((b) => (
+                          <div key={b.batch} className="space-y-2 pb-4 border-b last:border-0 last:pb-0">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-bold">Class of {b.batch}</h4>
+                              <span className="text-xs text-muted-foreground">{b.total_alumni} Alumni</span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-1.5">
+                                <span className="text-[10px] text-muted-foreground uppercase font-semibold mr-1 mt-1 shrink-0">Companies:</span>
+                                {b.top_companies.map((c) => (
+                                  <Badge key={c} variant="secondary" className="text-[9px] h-4 px-1.5">{c}</Badge>
+                                ))}
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                <span className="text-[10px] text-muted-foreground uppercase font-semibold mr-1 mt-1 shrink-0">Top Roles:</span>
+                                {b.top_roles.map((r) => (
+                                  <Badge key={r} variant="outline" className="text-[9px] h-4 px-1.5">{r}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
             </>
           )}
         </TabsContent>

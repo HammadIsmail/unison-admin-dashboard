@@ -11,6 +11,7 @@ import PendingAccountsPage from "@/pages/PendingAccounts";
 import AlumniPage from "@/pages/AlumniPage";
 import StudentsPage from "@/pages/StudentsPage";
 import OpportunitiesPage from "@/pages/OpportunitiesPage";
+import OpportunityDetailPage from "@/pages/OpportunityDetail";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
@@ -35,6 +36,7 @@ function AppRoutes() {
       <Route path="/alumni" element={<ProtectedRoute><AlumniPage /></ProtectedRoute>} />
       <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
       <Route path="/opportunities" element={<ProtectedRoute><OpportunitiesPage /></ProtectedRoute>} />
+      <Route path="/opportunities/:id" element={<ProtectedRoute><OpportunityDetailPage /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />

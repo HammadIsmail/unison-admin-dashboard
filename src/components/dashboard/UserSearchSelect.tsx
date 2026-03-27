@@ -39,7 +39,7 @@ export function UserSearchSelect({
     const q = search.toLowerCase();
     return users.filter(
       (u) =>
-        u.username.toLowerCase().includes(q) ||
+        (u.username && u.username.toLowerCase().includes(q)) ||
         (u.name && u.name.toLowerCase().includes(q))
     );
   }, [users, search]);
@@ -82,29 +82,32 @@ export function UserSearchSelect({
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md">
-          <div className="flex items-center border-b px-3">
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover text-popover-foreground shadow-md animate-in fade-in zoom-in-95 duration-100">
+          <div className="flex items-center border-b px-3 bg-popover rounded-t-lg">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             <input
-              className="flex h-9 w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
+              className="flex h-9 w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground text-popover-foreground"
               placeholder="Search username..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
             />
           </div>
-          <ScrollArea className="max-h-[200px]">
+          <ScrollArea className="max-h-[200px] min-h-[40px]">
             {loading ? (
-              <div className="py-4 text-center text-sm text-muted-foreground">Loading users...</div>
+              <div className="py-6 text-center text-sm text-muted-foreground">Loading users...</div>
             ) : filtered.length === 0 ? (
-              <div className="py-4 text-center text-sm text-muted-foreground">No users found</div>
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                {search ? "No results found" : "No users available"}
+              </div>
             ) : (
               <div className="p-1">
                 {filtered.map((user) => (
                   <div
                     key={user.id}
                     className={cn(
-                      "flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground",
+                      "flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm transition-colors",
+                      "text-popover-foreground hover:bg-accent hover:text-accent-foreground",
                       value === user.id && "bg-accent text-accent-foreground"
                     )}
                     onClick={() => {
@@ -113,9 +116,11 @@ export function UserSearchSelect({
                       setSearch("");
                     }}
                   >
-                    <span className="font-medium">{user.username}</span>
+                    <span className="font-medium truncate">{user.username}</span>
                     {user.name && (
-                      <span className="ml-2 text-muted-foreground text-xs">{user.name}</span>
+                      <span className="ml-2 text-muted-foreground text-xs truncate max-w-[120px]">
+                        ({user.name})
+                      </span>
                     )}
                   </div>
                 ))}
