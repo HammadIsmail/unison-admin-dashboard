@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -58,7 +59,7 @@ export default function StudentsPage() {
       const res = await apiClient.get<{ total: number; page: number; data: Student[] }>(
         `/api/admin/all-students?page=${page}&limit=${PAGE_SIZE}&search=${encodeURIComponent(search)}`
       );
-      console.log("Students API Response:", res);
+
       setData(res.data || []);
       setTotal(res.total || 0);
     } catch {
@@ -104,7 +105,7 @@ export default function StudentsPage() {
             <Avatar className="h-9 w-9 border-2 border-transparent group-hover:border-primary/20 transition-all">
               {item.profile_picture && <AvatarImage src={item.profile_picture} />}
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                {displayName.split(" ").map((n) => n[0]).join("") || "?"}
+                {displayName.split(" ").filter(Boolean).map((n) => n[0]).join("") || "?"}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
@@ -194,13 +195,17 @@ export default function StudentsPage() {
 
       <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selectedStudent?.name || "Student Profile"}</DialogTitle>
+            <DialogDescription>Detailed information about the student member.</DialogDescription>
+          </DialogHeader>
           <div className="h-32 bg-gradient-to-r from-blue-500/20 via-blue-500/10 to-transparent relative">
             <div className="absolute -bottom-12 left-6">
               <Avatar className="h-24 w-24 border-4 border-background shadow-xl">
                 {selectedStudent?.profile_picture && <AvatarImage src={selectedStudent.profile_picture} />}
                 <AvatarFallback className="bg-blue-500/10 text-blue-600 text-2xl font-bold">
                   {(selectedStudent?.name || selectedStudent?.display_name || selectedStudent?.username || "?")
-                    .split(" ").map(n => n[0]).join("")}
+                    .split(" ").filter(Boolean).map(n => n[0]).join("") || "?"}
                 </AvatarFallback>
               </Avatar>
             </div>

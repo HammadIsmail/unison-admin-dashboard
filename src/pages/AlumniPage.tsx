@@ -61,7 +61,7 @@ export default function AlumniPage() {
       const res = await apiClient.get<{ total: number; page: number; data: Alumni[] }>(
         `/api/admin/all-alumni?page=${page}&limit=${PAGE_SIZE}&search=${encodeURIComponent(search)}`
       );
-      console.log("Alumni API Response:", res); // Debug log to check structure
+
       setData(res.data || []);
       setTotal(res.total || 0);
     } catch {
@@ -107,7 +107,7 @@ export default function AlumniPage() {
             <Avatar className="h-9 w-9 border-2 border-transparent group-hover:border-primary/20 transition-all">
               {item.profile_picture && <AvatarImage src={item.profile_picture} />}
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                {displayName.split(" ").map((n: string) => n[0]).join("")}
+                {displayName.split(" ").filter(Boolean).map((n: string) => n[0]).join("") || "?"}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
@@ -193,13 +193,17 @@ export default function AlumniPage() {
 
       <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden gap-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selectedUser?.name || "User Profile"}</DialogTitle>
+            <DialogDescription>Detailed information about the alumni member.</DialogDescription>
+          </DialogHeader>
           <div className="h-32 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent relative">
             <div className="absolute -bottom-12 left-6">
               <Avatar className="h-24 w-24 border-4 border-background shadow-xl">
                 {selectedUser?.profile_picture && <AvatarImage src={selectedUser.profile_picture} />}
                 <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
                   {(selectedUser?.name || selectedUser?.display_name || selectedUser?.username || "?")
-                    .split(" ").map(n => n[0]).join("")}
+                    .split(" ").filter(Boolean).map(n => n[0]).join("") || "?"}
                 </AvatarFallback>
               </Avatar>
             </div>

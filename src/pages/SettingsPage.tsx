@@ -225,13 +225,13 @@ export default function SettingsPage() {
                   </Label>
 
                   {emailStep === "view" && (
-                    <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg border border-dashed hover:border-primary/50 transition-colors group">
-                      <p className="font-medium text-lg">{user?.email}</p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted/30 p-3 rounded-lg border border-dashed hover:border-primary/50 transition-colors group gap-3">
+                      <p className="font-medium text-base sm:text-lg break-all sm:break-normal truncate-on-mobile sm:truncate-none min-w-0">{user?.email}</p>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setEmailStep("request")}
-                        className="text-primary hover:text-primary hover:bg-primary/10 gap-2"
+                        className="text-primary hover:text-primary hover:bg-primary/10 gap-2 shrink-0 self-end sm:self-auto"
                       >
                         Change
                       </Button>

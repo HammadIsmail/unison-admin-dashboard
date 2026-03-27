@@ -1,5 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_NEXT_PUBLIC_API_BASE_URL || "https://unison-backend-lxmu.onrender.com";
-
+const API_BASE_URL = import.meta.env.VITE_NEXT_PUBLIC_API_BASE_URL;
 export const getAuthToken = (): string | null => {
   return localStorage.getItem("unison_token");
 };

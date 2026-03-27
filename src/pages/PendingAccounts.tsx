@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,11 +14,13 @@ import { apiClient } from "@/lib/api";
 
 interface PendingAccount {
   id: string;
-  display_name: string;
+  display_name?: string | null;
+  name?: string | null;
+  username?: string | null;
   email: string;
   role: string;
   registered_at: string;
-  profile_picture?: string;
+  profile_picture?: string | null;
   [key: string]: unknown;
 }
 
@@ -73,20 +75,28 @@ export default function PendingAccountsPage() {
     {
       key: "display_name",
       label: "User",
-      render: (item) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            {item.profile_picture && <AvatarImage src={item.profile_picture} />}
-            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-              {item.display_name.split(" ").map((n) => n[0]).join("")}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-sm font-medium">{item.display_name}</p>
-            <p className="text-xs text-muted-foreground">{item.email}</p>
+      render: (item) => {
+        const displayName = item.display_name || item.name || item.username || "User";
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8">
+              {item.profile_picture && <AvatarImage src={item.profile_picture} />}
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {displayName.split(" ").filter(Boolean).map((n) => n[0]).join("") || "?"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <p className="text-sm font-medium">{displayName}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">{item.email}</p>
+                {item.username && (
+                  <span className="text-[10px] text-muted-foreground font-mono">(@{item.username})</span>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: "role",
@@ -144,6 +154,7 @@ export default function PendingAccountsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reject Account</DialogTitle>
+            <DialogDescription>Please provide a reason why you are rejecting this account request.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <Label>Reason for rejection</Label>

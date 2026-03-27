@@ -194,32 +194,38 @@ export default function AnalyticsPage() {
       </div>
 
       <Tabs defaultValue="influential" className="space-y-6">
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="influential">Influential Alumni</TabsTrigger>
-          <TabsTrigger value="path">Shortest Path</TabsTrigger>
-          <TabsTrigger value="companies">Top Companies</TabsTrigger>
-          <TabsTrigger value="skills">Skill Trends</TabsTrigger>
-          <TabsTrigger value="batch">Batch Analysis</TabsTrigger>
+      <div className="w-full overflow-x-auto pb-1 -mb-1 scrollbar-hide">
+        <TabsList className="bg-muted/50 w-max min-w-full justify-start h-10 p-1 mb-2">
+          <TabsTrigger value="influential" className="px-4">Influential Alumni</TabsTrigger>
+          <TabsTrigger value="path" className="px-4">Shortest Path</TabsTrigger>
+          <TabsTrigger value="companies" className="px-4">Top Companies</TabsTrigger>
+          <TabsTrigger value="skills" className="px-4">Skill Trends</TabsTrigger>
+          <TabsTrigger value="batch" className="px-4">Batch Analysis</TabsTrigger>
         </TabsList>
+      </div>
 
         {/* Influential Alumni */}
         <TabsContent value="influential" className="space-y-6">
           {loadingStates.centrality ? (
             <Skeleton className="h-72 rounded-xl" />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <ChartCard title="Most Connected Alumni" description="By number of connections">
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={centralityChartData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis type="number" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                    <YAxis dataKey="name" type="category" width={80} tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
-                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                    <Bar dataKey="connections" fill="hsl(221, 83%, 53%)" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-              <DataTable columns={centralityColumns} data={centralityData} emptyMessage="No centrality data" />
+            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6">
+              <div className="w-full">
+                <ChartCard title="Most Connected Alumni" description="By number of connections">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={centralityChartData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis type="number" tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                      <YAxis dataKey="name" type="category" width={80} tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }} />
+                      <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                      <Bar dataKey="connections" fill="hsl(221, 83%, 53%)" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+              <div className="w-full">
+                <DataTable columns={centralityColumns} data={centralityData} emptyMessage="No centrality data" />
+              </div>
             </div>
           )}
         </TabsContent>
@@ -248,11 +254,11 @@ export default function AnalyticsPage() {
               {pathResult && pathResult.length > 0 && (
                 <div className="mt-6 p-4 rounded-lg bg-muted/50">
                   <p className="text-sm font-medium mb-3">Path Found ({pathHops ?? pathResult.length - 1} hops):</p>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide flex-nowrap min-w-full">
                     {pathResult.map((node, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <Badge variant={i === 0 || i === pathResult.length - 1 ? "default" : "secondary"}>{node}</Badge>
-                        {i < pathResult.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
+                      <div key={i} className="flex items-center gap-2 shrink-0">
+                        <Badge variant={i === 0 || i === pathResult.length - 1 ? "default" : "secondary"} className="whitespace-nowrap">{node}</Badge>
+                        {i < pathResult.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                       </div>
                     ))}
                   </div>
