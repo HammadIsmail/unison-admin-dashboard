@@ -83,7 +83,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         {!collapsed && user && (
           <div className="px-2 py-2 mb-2">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">{user.name}</p>
+            <p className="text-xs font-medium text-sidebar-foreground truncate">{user.display_name}</p>
             <p className="text-[10px] text-sidebar-foreground/50 truncate">{user.email}</p>
           </div>
         )}

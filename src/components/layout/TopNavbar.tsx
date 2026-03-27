@@ -43,15 +43,15 @@ export function TopNavbar() {
             <Button variant="ghost" className="h-9 gap-2 px-2">
               <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center">
                 <span className="text-xs font-semibold text-primary-foreground">
-                  {user?.name?.charAt(0) ?? "A"}
+                  {user?.display_name?.charAt(0) ?? "A"}
                 </span>
               </div>
-              <span className="text-sm font-medium hidden sm:inline">{user?.name}</span>
+              <span className="text-sm font-medium hidden sm:inline">{user?.display_name}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{user?.name}</p>
+              <p className="text-sm font-medium">{user?.display_name}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
             <DropdownMenuSeparator />
