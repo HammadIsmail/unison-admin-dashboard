@@ -161,13 +161,25 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                 <div className="space-y-2">
                   <Label>From User</Label>
-                  <Input placeholder="Enter name or ID" value={fromUser} onChange={(e) => setFromUser(e.target.value)} />
+                  <UserSearchSelect
+                    users={allUsers}
+                    value={fromUserId}
+                    onChange={(id, name) => { setFromUserId(id); setFromUserName(name); }}
+                    placeholder="Select user..."
+                    loading={usersLoading}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>To User</Label>
-                  <Input placeholder="Enter name or ID" value={toUser} onChange={(e) => setToUser(e.target.value)} />
+                  <UserSearchSelect
+                    users={allUsers}
+                    value={toUserId}
+                    onChange={(id, name) => { setToUserId(id); setToUserName(name); }}
+                    placeholder="Select user..."
+                    loading={usersLoading}
+                  />
                 </div>
-                <Button onClick={handleFindPath} disabled={!fromUser || !toUser}>Find Path</Button>
+                <Button onClick={handleFindPath} disabled={!fromUserId || !toUserId}>Find Path</Button>
               </div>
 
               {pathResult && (
