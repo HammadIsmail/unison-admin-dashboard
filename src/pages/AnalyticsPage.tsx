@@ -149,14 +149,19 @@ export default function AnalyticsPage() {
   // Build skill comparison data from the trends response
   const skillChartData = (() => {
     if (!skillTrends) return [];
+    
+    // Defensive extraction of skill names
+    const getSkillName = (s: any) => typeof s === 'string' ? s : (s?.skill || "Unknown");
+
     const allSkills = new Set([
-      ...skillTrends.most_required_in_opportunities,
-      ...skillTrends.most_common_among_alumni,
+      ...(skillTrends.most_required_in_opportunities || []).map(getSkillName),
+      ...(skillTrends.most_common_among_alumni || []).map(getSkillName),
     ]);
-    return Array.from(allSkills).slice(0, 8).map((skill) => ({
-      skill,
-      demand: skillTrends.most_required_in_opportunities.includes(skill) ? 80 : 30,
-      supply: skillTrends.most_common_among_alumni.includes(skill) ? 75 : 25,
+
+    return Array.from(allSkills).slice(0, 8).map((skillName) => ({
+      skill: skillName,
+      demand: (skillTrends.most_required_in_opportunities || []).some(s => getSkillName(s) === skillName) ? 80 : 30,
+      supply: (skillTrends.most_common_among_alumni || []).some(s => getSkillName(s) === skillName) ? 75 : 25,
     }));
   })();
 
@@ -319,11 +324,14 @@ export default function AnalyticsPage() {
                   <CardContent className="flex-1 space-y-4">
                     {skillTrends?.gap && skillTrends.gap.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
-                        {skillTrends.gap.map((s) => (
-                          <Badge key={s} variant="destructive" className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20">
-                            {s}
-                          </Badge>
-                        ))}
+                        {skillTrends.gap.map((s: any) => {
+                          const skillName = typeof s === 'string' ? s : (s?.skill || "Unknown");
+                          return (
+                            <Badge key={skillName} variant="destructive" className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20">
+                              {skillName}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground italic text-center py-10">No significant gaps detected.</p>
@@ -331,7 +339,7 @@ export default function AnalyticsPage() {
                     <div className="pt-4 border-t mt-auto">
                       <p className="text-xs font-medium mb-2 uppercase tracking-wider text-muted-foreground">Actionable Insight</p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Encourage students to pick up {skillTrends?.gap?.[0] || "emerging"} technologies to align with current market requirements.
+                        Encourage students to pick up {typeof skillTrends?.gap?.[0] === "string" ? skillTrends.gap[0] : (skillTrends?.gap?.[0] as any)?.skill || "emerging"} technologies to align with current market requirements.
                       </p>
                     </div>
                   </CardContent>
