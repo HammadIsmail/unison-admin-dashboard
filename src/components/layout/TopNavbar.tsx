@@ -20,14 +20,6 @@ export function TopNavbar() {
     <header className="h-14 border-b bg-card flex items-center px-4 gap-3 sticky top-0 z-30">
       <SidebarTrigger />
 
-      <div className="relative flex-1 max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search alumni, students, companies..."
-          className="pl-9 h-9 bg-muted/50 border-0 focus-visible:ring-1"
-        />
-      </div>
-
       <div className="ml-auto flex items-center gap-2">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme}>
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
