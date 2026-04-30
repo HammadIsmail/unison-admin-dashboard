@@ -15,6 +15,7 @@ import OpportunityDetailPage from "@/pages/OpportunityDetail";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
+import UpgradeRequestsPage from "@/pages/UpgradeRequestsPage";
 import { type ReactNode } from "react";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ function AppRoutes() {
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
       <Route path="/pending" element={<ProtectedRoute><PendingAccountsPage /></ProtectedRoute>} />
+      <Route path="/upgrades" element={<ProtectedRoute><UpgradeRequestsPage /></ProtectedRoute>} />
       <Route path="/alumni" element={<ProtectedRoute><AlumniPage /></ProtectedRoute>} />
       <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
       <Route path="/opportunities" element={<ProtectedRoute><OpportunitiesPage /></ProtectedRoute>} />

@@ -7,6 +7,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  ArrowUpCircle,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -27,6 +28,7 @@ import {
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Pending Accounts", url: "/pending", icon: UserCheck },
+  { title: "Upgrade Requests", url: "/upgrades", icon: ArrowUpCircle },
   { title: "Alumni", url: "/alumni", icon: Users },
   { title: "Students", url: "/students", icon: GraduationCap },
   { title: "Opportunities", url: "/opportunities", icon: Briefcase },
