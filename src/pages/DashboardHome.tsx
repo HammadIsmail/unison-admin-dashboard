@@ -11,7 +11,9 @@ import {
   LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { cn, formatDate, formatTime } from "@/lib/utils";
 
 interface Activity {
   id: string;
@@ -50,25 +52,40 @@ export default function DashboardHome() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState<string>("ALL");
+  const [filterUserId, setFilterUserId] = useState("");
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      let activityUrl = "/api/admin/recent-activity?limit=10";
+      if (filterType !== "ALL") activityUrl += `&type=${filterType}`;
+      if (filterUserId.trim()) activityUrl += `&userId=${filterUserId.trim()}`;
+
+      const [statsData, activityData] = await Promise.all([
+        apiClient.get<DashboardStats>("/api/admin/dashboard-stats"),
+        apiClient.get<Activity[]>(activityUrl)
+      ]);
+      setStats(statsData);
+      setActivities(activityData);
+    } catch (error) {
+      console.error("Failed to load dashboard data", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [statsData, activityData] = await Promise.all([
-          apiClient.get<DashboardStats>("/api/admin/dashboard-stats"),
-          apiClient.get<Activity[]>("/api/admin/recent-activity?limit=6")
-        ]);
-        setStats(statsData);
-        setActivities(activityData);
-      } catch (error) {
-        console.error("Failed to load dashboard data", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, []);
+  }, [filterType]); // Refetch on type change
+
+  // Debounced effect for userId
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (filterUserId) fetchData();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filterUserId]);
 
   const barData = stats ? [
     { label: "Alumni", count: stats.total_alumni },
@@ -152,6 +169,31 @@ export default function DashboardHome() {
         </ChartCard>
 
         <ChartCard title="Recent Activity" description="Latest platform events" className="lg:col-span-2">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="flex-1">
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="All Activity Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Activities</SelectItem>
+                  <SelectItem value="USER_REGISTERED">User Registrations</SelectItem>
+                  <SelectItem value="ACCOUNT_APPROVED">Account Approvals</SelectItem>
+                  <SelectItem value="ACCOUNT_REJECTED">Account Rejections</SelectItem>
+                  <SelectItem value="OPPORTUNITY_POSTED">New Opportunities</SelectItem>
+                  <SelectItem value="PROFILE_UPDATED">Profile Updates</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Input 
+                placeholder="Filter by User ID..." 
+                className="h-9 text-xs" 
+                value={filterUserId}
+                onChange={(e) => setFilterUserId(e.target.value)}
+              />
+            </div>
+          </div>
           <div className="space-y-4">
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
@@ -179,7 +221,7 @@ export default function DashboardHome() {
                       </p>
                     </div>
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap pt-0.5">
-                      {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatTime(item.created_at)}
                     </span>
                   </div>
                 );

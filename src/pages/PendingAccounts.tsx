@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DataTable, type Column } from "@/components/dashboard/DataTable";
 import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiClient } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDate } from "@/lib/utils";
 
 interface PendingAccount {
   id: string;
@@ -31,17 +32,24 @@ export default function PendingAccountsPage() {
   const [loading, setLoading] = useState(true);
   const [approveId, setApproveId] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [viewCardUrl, setViewCardUrl] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [isBulkReject, setIsBulkReject] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
+  const fetchAccounts = useCallback(() => {
+    setLoading(true);
     apiClient.get<PendingAccount[]>("/api/admin/pending-accounts")
       .then(setAccounts)
       .catch(() => toast({ title: "Failed to load pending accounts", variant: "destructive" }))
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   const handleApprove = async () => {
     if (!approveId) return;
@@ -49,6 +57,7 @@ export default function PendingAccountsPage() {
     try {
       await apiClient.patch(`/api/admin/approve-account/${approveId}`);
       setAccounts((prev) => prev.filter((a) => a.id !== approveId));
+      setSelectedIds((prev) => prev.filter((id) => id !== approveId));
       toast({ title: "Account approved", description: "The user has been notified." });
     } catch {
       toast({ title: "Failed to approve", variant: "destructive" });
@@ -59,18 +68,42 @@ export default function PendingAccountsPage() {
   };
 
   const handleReject = async () => {
-    if (!rejectId) return;
+    if (!rejectId && !isBulkReject) return;
     setActionLoading(true);
     try {
-      await apiClient.patch(`/api/admin/reject-account/${rejectId}`, { rejection_reason: reason });
-      setAccounts((prev) => prev.filter((a) => a.id !== rejectId));
-      toast({ title: "Account rejected", description: "Rejection reason has been sent." });
+      if (isBulkReject) {
+        await apiClient.patch("/api/admin/bulk/reject", { ids: selectedIds, reason });
+        setAccounts((prev) => prev.filter((a) => !selectedIds.includes(a.id)));
+        setSelectedIds([]);
+        toast({ title: "Accounts rejected", description: `${selectedIds.length} accounts have been rejected.` });
+      } else {
+        await apiClient.patch(`/api/admin/reject-account/${rejectId}`, { rejection_reason: reason });
+        setAccounts((prev) => prev.filter((a) => a.id !== rejectId));
+        setSelectedIds((prev) => prev.filter((id) => id !== rejectId));
+        toast({ title: "Account rejected", description: "Rejection reason has been sent." });
+      }
     } catch {
       toast({ title: "Failed to reject", variant: "destructive" });
     } finally {
       setActionLoading(false);
       setRejectId(null);
+      setIsBulkReject(false);
       setReason("");
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    setActionLoading(true);
+    try {
+      await apiClient.patch("/api/admin/bulk/approve", { ids: selectedIds });
+      setAccounts((prev) => prev.filter((a) => !selectedIds.includes(a.id)));
+      setSelectedIds([]);
+      toast({ title: "Accounts approved", description: `${selectedIds.length} accounts have been approved.` });
+    } catch {
+      toast({ title: "Failed to approve accounts", variant: "destructive" });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -123,7 +156,7 @@ export default function PendingAccountsPage() {
       render: (item) => (
         <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
           <Calendar className="h-3.5 w-3.5 text-primary/60" />
-          <span className="text-sm tabular-nums">{new Date(item.registered_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+          <span className="text-sm tabular-nums">{formatDate(item.registered_at)}</span>
         </div>
       ),
     },
@@ -137,7 +170,7 @@ export default function PendingAccountsPage() {
               size="sm" 
               variant="outline" 
               className="h-8 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-colors gap-1.5"
-              onClick={() => setViewCardUrl(item.student_card_url!)}
+              onClick={(e) => { e.stopPropagation(); setViewCardUrl(item.student_card_url!); }}
             >
               <Eye className="h-3.5 w-3.5" /> View ID
             </Button>
@@ -146,7 +179,7 @@ export default function PendingAccountsPage() {
             size="sm" 
             variant="ghost" 
             className="h-8 text-success hover:text-success hover:bg-success/10 transition-colors gap-1.5"
-            onClick={() => setApproveId(item.id)}
+            onClick={(e) => { e.stopPropagation(); setApproveId(item.id); }}
           >
             <Check className="h-3.5 w-3.5" /> Approve
           </Button>
@@ -154,7 +187,7 @@ export default function PendingAccountsPage() {
             size="sm" 
             variant="ghost" 
             className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors gap-1.5"
-            onClick={() => setRejectId(item.id)}
+            onClick={(e) => { e.stopPropagation(); setRejectId(item.id); }}
           >
             <X className="h-3.5 w-3.5" /> Reject
           </Button>
@@ -164,7 +197,7 @@ export default function PendingAccountsPage() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 relative">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2 mb-1">
           <div className="p-2 rounded-lg bg-primary/10 text-primary">
@@ -177,6 +210,48 @@ export default function PendingAccountsPage() {
         </p>
       </div>
 
+      {/* Floating Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-8 duration-300">
+          <Card className="shadow-2xl border-primary/20 bg-background/95 backdrop-blur-md px-6 py-3 flex items-center gap-6">
+            <div className="flex items-center gap-2 pr-6 border-r">
+              <Badge variant="secondary" className="h-6 w-6 rounded-full p-0 flex items-center justify-center font-bold">
+                {selectedIds.length}
+              </Badge>
+              <span className="text-sm font-medium">Selected</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                size="sm" 
+                variant="default" 
+                onClick={handleBulkApprove}
+                disabled={actionLoading}
+                className="shadow-sm"
+              >
+                <Check className="h-4 w-4 mr-2" /> Approve All
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="text-destructive border-destructive/20 hover:bg-destructive/10"
+                onClick={() => { setIsBulkReject(true); setRejectId(null); }}
+                disabled={actionLoading}
+              >
+                <X className="h-4 w-4 mr-2" /> Reject Selected
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={() => setSelectedIds([])}
+                className="text-muted-foreground"
+              >
+                Cancel
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
       <Card className="border-none shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm">
         <CardContent className="p-0">
           {loading ? (
@@ -187,6 +262,9 @@ export default function PendingAccountsPage() {
             <DataTable 
               columns={columns} 
               data={accounts} 
+              selectable
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
               emptyMessage="No pending registration requests found." 
             />
           )}
@@ -202,17 +280,27 @@ export default function PendingAccountsPage() {
         onConfirm={handleApprove}
       />
 
-      <Dialog open={!!rejectId} onOpenChange={(open) => !open && setRejectId(null)}>
+      <Dialog open={!!rejectId || isBulkReject} onOpenChange={(open) => {
+        if (!open) {
+          setRejectId(null);
+          setIsBulkReject(false);
+          setReason("");
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Decline Registration</DialogTitle>
-            <DialogDescription>Please provide a reason why this registration request is being declined.</DialogDescription>
+            <DialogTitle>{isBulkReject ? "Bulk Decline Registrations" : "Decline Registration"}</DialogTitle>
+            <DialogDescription>
+              {isBulkReject 
+                ? `You are about to decline ${selectedIds.length} registration requests. Please provide a shared reason.` 
+                : "Please provide a reason why this registration request is being declined."}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">Reason for rejection</Label>
               <Textarea 
-                placeholder="e.g., Student card is blurred or invalid, Email address doesn't match official records..." 
+                placeholder="e.g., Student card is blurred or invalid..." 
                 className="min-h-[120px] resize-none focus-visible:ring-destructive/20"
                 value={reason} 
                 onChange={(e) => setReason(e.target.value)} 
@@ -220,9 +308,9 @@ export default function PendingAccountsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectId(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setRejectId(null); setIsBulkReject(false); }}>Cancel</Button>
             <Button variant="destructive" onClick={handleReject} disabled={!reason.trim() || actionLoading}>
-              {actionLoading ? "Declining..." : "Decline Account"}
+              {actionLoading ? "Declining..." : "Decline Accounts"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -260,4 +348,3 @@ export default function PendingAccountsPage() {
     </div>
   );
 }
-

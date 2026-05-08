@@ -8,6 +8,7 @@ import {
   Settings,
   LogOut,
   ArrowUpCircle,
+  Layers,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -31,8 +32,9 @@ const mainItems = [
   { title: "Upgrade Requests", url: "/upgrades", icon: ArrowUpCircle },
   { title: "Alumni", url: "/alumni", icon: Users },
   { title: "Students", url: "/students", icon: GraduationCap },
-  { title: "Opportunities", url: "/opportunities", icon: Briefcase },
-  { title: "Network Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Manage Opportunities", url: "/admin/opportunities", icon: Briefcase },
+  { title: "Executive Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Network Analytics", url: "/network-analytics", icon: Layers },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 

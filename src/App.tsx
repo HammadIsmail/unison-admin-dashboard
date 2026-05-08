@@ -13,6 +13,8 @@ import StudentsPage from "@/pages/StudentsPage";
 import OpportunitiesPage from "@/pages/OpportunitiesPage";
 import OpportunityDetailPage from "@/pages/OpportunityDetail";
 import AnalyticsPage from "@/pages/AnalyticsPage";
+import NetworkAnalytics from "@/pages/NetworkAnalytics";
+import AdminOpportunitiesPage from "@/pages/AdminOpportunities";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
 import UpgradeRequestsPage from "@/pages/UpgradeRequestsPage";
@@ -39,7 +41,9 @@ function AppRoutes() {
       <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
       <Route path="/opportunities" element={<ProtectedRoute><OpportunitiesPage /></ProtectedRoute>} />
       <Route path="/opportunities/:id" element={<ProtectedRoute><OpportunityDetailPage /></ProtectedRoute>} />
+      <Route path="/admin/opportunities" element={<ProtectedRoute><AdminOpportunitiesPage /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+      <Route path="/network-analytics" element={<ProtectedRoute><NetworkAnalytics /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

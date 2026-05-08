@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Search, Trash2, ChevronLeft, ChevronRight,
   Mail, Phone, Linkedin, Building2, Calendar, User, 
-  Info, MapPin, ExternalLink, GraduationCap, BookOpen, Clock
+  Info, MapPin, ExternalLink, GraduationCap, BookOpen, Clock, Download
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 interface Student {
   id: string;
@@ -91,6 +91,12 @@ export default function StudentsPage() {
     }
   };
 
+  const handleExport = () => {
+    const token = localStorage.getItem("unison_token");
+    const baseUrl = import.meta.env.VITE_NEXT_PUBLIC_API_BASE_URL;
+    window.location.href = `${baseUrl}/api/admin/export/student?token=${token}`;
+  };
+
   const columns: Column<Student>[] = [
     {
       key: "display_name",
@@ -157,9 +163,14 @@ export default function StudentsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Students</h1>
           <p className="text-sm text-muted-foreground mt-1">{total} students enrolled</p>
         </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search students..." className="pl-9" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="h-10 gap-2 px-4 shadow-sm" onClick={handleExport}>
+            <Download className="h-4 w-4" /> Export CSV
+          </Button>
+          <div className="relative flex-1 sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search students..." className="pl-9 h-10" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+          </div>
         </div>
       </div>
 
@@ -282,7 +293,7 @@ export default function StudentsPage() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-xs p-2 bg-muted/50 rounded-lg">
                         <span className="flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> Registered</span>
-                        <span className="font-medium">{selectedStudent?.registered_at ? new Date(selectedStudent.registered_at).toLocaleDateString() : "New Account"}</span>
+                        <span className="font-medium">{formatDate(selectedStudent?.registered_at)}</span>
                       </div>
                     </div>
                   </section>

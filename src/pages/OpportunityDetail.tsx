@@ -13,6 +13,7 @@ import { apiClient } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { formatDate } from "@/lib/utils";
 
 interface OpportunityDetail {
   id: string;
@@ -123,12 +124,12 @@ export default function OpportunityDetailPage() {
                 <Separator orientation="vertical" className="h-4 hidden sm:block" />
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-4 w-4" />
-                  Posted {new Date(data.posted_at).toLocaleDateString()}
+                  Posted {formatDate(data.posted_at)}
                 </div>
                 <Separator orientation="vertical" className="h-4 hidden sm:block" />
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
-                  Deadline: {new Date(data.deadline).toLocaleDateString()}
+                  Deadline: {formatDate(data.deadline)}
                 </div>
               </div>
             </CardHeader>

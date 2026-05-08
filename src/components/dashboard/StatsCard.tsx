@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StatsCardProps {
   title: string;
@@ -7,11 +8,12 @@ interface StatsCardProps {
   change?: string;
   changeType?: "positive" | "negative" | "neutral";
   icon: LucideIcon;
+  className?: string;
 }
 
-export function StatsCard({ title, value, change, changeType = "neutral", icon: Icon }: StatsCardProps) {
+export function StatsCard({ title, value, change, changeType = "neutral", icon: Icon, className }: StatsCardProps) {
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className={cn("hover:shadow-md transition-shadow", className)}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">

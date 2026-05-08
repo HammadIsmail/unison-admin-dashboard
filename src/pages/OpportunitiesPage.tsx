@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Briefcase, Search, Trash2, ChevronLeft, ChevronRight, 
+import {
+  Briefcase, Search, Trash2, ChevronLeft, ChevronRight,
   MapPin, Calendar, Filter, Users
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiClient } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -69,6 +69,7 @@ export default function OpportunitiesPage() {
 
       const res = await apiClient.get<{ total: number; page: number; data: Opportunity[] }>(url);
       setData(res.data || []);
+      console.log(res.data);
       setTotal(res.total || 0);
     } catch {
       toast({ title: "Failed to load opportunities", variant: "destructive" });
@@ -157,7 +158,7 @@ export default function OpportunitiesPage() {
           <span className={cn(
             new Date(item.deadline) < new Date() ? "text-destructive font-medium" : "text-muted-foreground"
           )}>
-            {new Date(item.deadline).toLocaleDateString()}
+            {formatDate(item.deadline)}
           </span>
         </div>
       ),
@@ -180,18 +181,18 @@ export default function OpportunitiesPage() {
           <h1 className="text-2xl font-bold tracking-tight">Opportunities</h1>
           <p className="text-sm text-muted-foreground mt-1">Oversee all job and internship postings</p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by title..." 
-              className="pl-9 h-9" 
-              value={search} 
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
+            <Input
+              placeholder="Search by title..."
+              className="pl-9 h-9"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             />
           </div>
-          
+
           <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
             <SelectTrigger className="w-full sm:w-32 h-9 text-xs">
               <SelectValue placeholder="All Types" />
@@ -232,10 +233,10 @@ export default function OpportunitiesPage() {
               <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters or search query.</p>
             </div>
           ) : (
-            <DataTable 
-              columns={columns} 
-              data={data} 
-              emptyMessage="No opportunities found" 
+            <DataTable
+              columns={columns}
+              data={data}
+              emptyMessage="No opportunities found"
               onRowClick={(item) => navigate(`/opportunities/${item.id}`)}
             />
           )}
