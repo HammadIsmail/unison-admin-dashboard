@@ -4,7 +4,7 @@ import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, X, Eye, ShieldCheck, Mail, Calendar } from "lucide-react";
+import { Check, X, Eye, ShieldCheck, Mail, Calendar, User, Fingerprint, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +37,7 @@ export default function PendingAccountsPage() {
   const [reason, setReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [isBulkReject, setIsBulkReject] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<PendingAccount | null>(null);
   const { toast } = useToast();
 
   const fetchAccounts = useCallback(() => {
@@ -265,6 +266,7 @@ export default function PendingAccountsPage() {
               selectable
               selectedIds={selectedIds}
               onSelectionChange={setSelectedIds}
+              onRowClick={setSelectedAccount}
               emptyMessage="No pending registration requests found." 
             />
           )}
@@ -342,6 +344,136 @@ export default function PendingAccountsPage() {
             <Button className="w-full sm:w-auto" variant="outline" onClick={() => setViewCardUrl(null)}>
               Done Reviewing
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Detail Dialog */}
+      <Dialog open={!!selectedAccount} onOpenChange={(open) => !open && setSelectedAccount(null)}>
+        <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-6 border-b border-primary/10">
+            <DialogHeader>
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20 border-2 border-primary/20 shadow-lg">
+                  {selectedAccount?.profile_picture && <AvatarImage src={selectedAccount.profile_picture} />}
+                  <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
+                    {(selectedAccount?.display_name || selectedAccount?.name || selectedAccount?.username || "?")
+                      .split(" ")
+                      .filter(Boolean)
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                  <DialogTitle className="text-2xl font-bold tracking-tight">
+                    {selectedAccount?.display_name || selectedAccount?.name || "User Details"}
+                  </DialogTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-mono">
+                      @{selectedAccount?.username}
+                    </Badge>
+                    <Badge className="capitalize">{selectedAccount?.role}</Badge>
+                  </div>
+                </div>
+              </div>
+            </DialogHeader>
+          </div>
+
+          <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h4 className="text-xs uppercase tracking-widest font-bold text-muted-foreground/70">Account Information</h4>
+                
+                <div className="flex items-start gap-3 group">
+                  <div className="mt-1 p-2 rounded-md bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Email Address</p>
+                    <p className="text-sm font-semibold">{selectedAccount?.email}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 group">
+                  <div className="mt-1 p-2 rounded-md bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <Fingerprint className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Unique Identifier</p>
+                    <p className="text-sm font-mono text-muted-foreground break-all">{selectedAccount?.id}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 group">
+                  <div className="mt-1 p-2 rounded-md bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">Registered On</p>
+                    <p className="text-sm font-semibold">
+                      {selectedAccount?.registered_at ? formatDate(selectedAccount.registered_at) : "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="text-xs uppercase tracking-widest font-bold text-muted-foreground/70">Verification Assets</h4>
+              
+              {selectedAccount?.role === "student" && selectedAccount.student_card_url ? (
+                <div 
+                  className="relative aspect-[4/3] rounded-xl overflow-hidden border-2 border-dashed border-primary/20 bg-muted/30 group cursor-pointer hover:border-primary/40 transition-all"
+                  onClick={() => setViewCardUrl(selectedAccount.student_card_url!)}
+                >
+                  <img 
+                    src={selectedAccount.student_card_url} 
+                    alt="Student ID" 
+                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                  />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Eye className="h-8 w-8 text-primary mb-2" />
+                    <span className="text-xs font-bold text-primary uppercase tracking-tighter">View Full Card</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="aspect-[4/3] rounded-xl border-2 border-dashed border-muted flex flex-col items-center justify-center text-muted-foreground gap-2 bg-muted/10">
+                  <ImageIcon className="h-8 w-8 opacity-20" />
+                  <p className="text-[10px] font-medium uppercase tracking-tight">No ID Asset Required</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="bg-muted/30 p-4 border-t border-muted">
+            <div className="flex items-center gap-2 w-full">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setSelectedAccount(null)}
+              >
+                Close
+              </Button>
+              <Button 
+                className="flex-1 bg-success hover:bg-success/90"
+                onClick={() => {
+                  setApproveId(selectedAccount!.id);
+                  setSelectedAccount(null);
+                }}
+              >
+                <Check className="h-4 w-4 mr-2" /> Approve
+              </Button>
+              <Button 
+                variant="destructive"
+                className="flex-1"
+                onClick={() => {
+                  setRejectId(selectedAccount!.id);
+                  setSelectedAccount(null);
+                }}
+              >
+                <X className="h-4 w-4 mr-2" /> Reject
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
