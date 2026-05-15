@@ -4,7 +4,7 @@ import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, X, Eye, ShieldCheck, Mail, Calendar, User, Fingerprint, Image as ImageIcon } from "lucide-react";
+import { Check, X, Eye, ShieldCheck, Mail, Calendar, User, Fingerprint, Image as ImageIcon, Building2, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +24,8 @@ interface PendingAccount {
   registered_at: string;
   profile_picture?: string | null;
   student_card_url?: string | null;
+  affiliation?: string | null;
+  job_title?: string | null;
   [key: string]: unknown;
 }
 
@@ -112,14 +114,14 @@ export default function PendingAccountsPage() {
     {
       key: "display_name",
       label: "User Information",
-      render: (item) => {
+      render: (item: PendingAccount) => {
         const displayName = item.display_name || item.name || item.username || "User";
         return (
           <div className="flex items-center gap-4 py-1">
             <Avatar className="h-10 w-10 border border-primary/10 shadow-sm">
               {item.profile_picture && <AvatarImage src={item.profile_picture} />}
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary font-bold">
-                {displayName.split(" ").filter(Boolean).map((n) => n[0]).join("") || "?"}
+                {displayName.split(" ").filter(Boolean).map((n: string) => n[0]).join("") || "?"}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col gap-0.5">
@@ -142,7 +144,7 @@ export default function PendingAccountsPage() {
     {
       key: "role",
       label: "Account Role",
-      render: (item) => (
+      render: (item: PendingAccount) => (
         <Badge 
           className="capitalize font-medium px-2.5 py-0.5" 
           variant={item.role === 'admin' ? 'default' : 'secondary'}
@@ -154,7 +156,7 @@ export default function PendingAccountsPage() {
     {
       key: "registered_at",
       label: "Registration Data",
-      render: (item) => (
+      render: (item: PendingAccount) => (
         <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
           <Calendar className="h-3.5 w-3.5 text-primary/60" />
           <span className="text-sm tabular-nums">{formatDate(item.registered_at)}</span>
@@ -164,14 +166,14 @@ export default function PendingAccountsPage() {
     {
       key: "actions",
       label: "Review Actions",
-      render: (item) => (
+      render: (item: PendingAccount) => (
         <div className="flex items-center gap-2">
           {item.role === "student" && item.student_card_url && (
             <Button 
               size="sm" 
               variant="outline" 
               className="h-8 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-colors gap-1.5"
-              onClick={(e) => { e.stopPropagation(); setViewCardUrl(item.student_card_url!); }}
+              onClick={(e: React.MouseEvent) => { e.stopPropagation(); setViewCardUrl(item.student_card_url!); }}
             >
               <Eye className="h-3.5 w-3.5" /> View ID
             </Button>
@@ -180,7 +182,7 @@ export default function PendingAccountsPage() {
             size="sm" 
             variant="ghost" 
             className="h-8 text-success hover:text-success hover:bg-success/10 transition-colors gap-1.5"
-            onClick={(e) => { e.stopPropagation(); setApproveId(item.id); }}
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setApproveId(item.id); }}
           >
             <Check className="h-3.5 w-3.5" /> Approve
           </Button>
@@ -188,7 +190,7 @@ export default function PendingAccountsPage() {
             size="sm" 
             variant="ghost" 
             className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors gap-1.5"
-            onClick={(e) => { e.stopPropagation(); setRejectId(item.id); }}
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); setRejectId(item.id); }}
           >
             <X className="h-3.5 w-3.5" /> Reject
           </Button>
@@ -350,7 +352,7 @@ export default function PendingAccountsPage() {
 
       {/* User Detail Dialog */}
       <Dialog open={!!selectedAccount} onOpenChange={(open) => !open && setSelectedAccount(null)}>
-        <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden border-none shadow-2xl">
+        <DialogContent className="max-w-2xl p-0 gap-0 border-none shadow-2xl overflow-y-auto max-h-[95vh] scrollbar-thin">
           <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background p-6 border-b border-primary/10">
             <DialogHeader>
               <div className="flex items-center gap-4">
@@ -360,7 +362,7 @@ export default function PendingAccountsPage() {
                     {(selectedAccount?.display_name || selectedAccount?.name || selectedAccount?.username || "?")
                       .split(" ")
                       .filter(Boolean)
-                      .map((n) => n[0])
+                      .map((n: string) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
@@ -403,19 +405,33 @@ export default function PendingAccountsPage() {
                     <p className="text-sm font-mono text-muted-foreground break-all">{selectedAccount?.id}</p>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex items-start gap-3 group">
-                  <div className="mt-1 p-2 rounded-md bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                    <Calendar className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium">Registered On</p>
-                    <p className="text-sm font-semibold">
-                      {selectedAccount?.registered_at ? formatDate(selectedAccount.registered_at) : "N/A"}
-                    </p>
+              {selectedAccount?.role === 'partner' && (
+                <div className="space-y-4 pt-4 border-t border-primary/5">
+                  <h4 className="text-xs uppercase tracking-widest font-bold text-muted-foreground/70">Professional Affiliation</h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="flex items-start gap-3 group">
+                      <div className="mt-1 p-2 rounded-md bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        <Building2 className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Company / Institution</p>
+                        <p className="text-sm font-semibold">{selectedAccount?.affiliation || "N/A"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 group">
+                      <div className="mt-1 p-2 rounded-md bg-muted group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        <Briefcase className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Current Designation</p>
+                        <p className="text-sm font-semibold">{selectedAccount?.job_title || "N/A"}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="space-y-4">

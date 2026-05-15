@@ -18,6 +18,10 @@ import AdminOpportunitiesPage from "@/pages/AdminOpportunities";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
 import UpgradeRequestsPage from "@/pages/UpgradeRequestsPage";
+import MembersPage from "@/pages/MembersPage";
+import EventsPage from "@/pages/EventsPage";
+import AnnouncementsPage from "@/pages/AnnouncementsPage";
+import RecoveryPage from "@/pages/RecoveryPage";
 import { type ReactNode } from "react";
 
 const queryClient = new QueryClient();
@@ -39,6 +43,10 @@ function AppRoutes() {
       <Route path="/upgrades" element={<ProtectedRoute><UpgradeRequestsPage /></ProtectedRoute>} />
       <Route path="/alumni" element={<ProtectedRoute><AlumniPage /></ProtectedRoute>} />
       <Route path="/students" element={<ProtectedRoute><StudentsPage /></ProtectedRoute>} />
+      <Route path="/members" element={<ProtectedRoute><MembersPage /></ProtectedRoute>} />
+      <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+      <Route path="/announcements" element={<ProtectedRoute><AnnouncementsPage /></ProtectedRoute>} />
+      <Route path="/recovery" element={<ProtectedRoute><RecoveryPage /></ProtectedRoute>} />
       <Route path="/opportunities" element={<ProtectedRoute><OpportunitiesPage /></ProtectedRoute>} />
       <Route path="/opportunities/:id" element={<ProtectedRoute><OpportunityDetailPage /></ProtectedRoute>} />
       <Route path="/admin/opportunities" element={<ProtectedRoute><AdminOpportunitiesPage /></ProtectedRoute>} />

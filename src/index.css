@@ -135,3 +135,49 @@
     @apply bg-muted-foreground/20 rounded-full;
   }
 }
+
+/* Custom ReactQuill Styling */
+.quill-editor-wrapper .ql-toolbar.ql-snow {
+  @apply border-none bg-muted/50 py-2 px-4 rounded-t-lg;
+}
+
+.quill-editor-wrapper .ql-container.ql-snow {
+  @apply border-none min-h-[150px] text-sm;
+}
+
+.quill-editor-wrapper .ql-editor {
+  @apply p-4 min-h-[150px];
+}
+
+.quill-editor-wrapper .ql-editor.ql-blank::before {
+  @apply text-muted-foreground/50 not-italic left-4;
+}
+
+.dark .quill-editor-wrapper .ql-snow .ql-stroke {
+  stroke: hsl(var(--muted-foreground));
+}
+
+.dark .quill-editor-wrapper .ql-snow .ql-fill {
+  fill: hsl(var(--muted-foreground));
+}
+
+.dark .quill-editor-wrapper .ql-snow .ql-picker {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Typography Overrides for HTML Content */
+.prose {
+  @apply max-w-none;
+}
+
+.prose p {
+  @apply my-1 leading-relaxed;
+}
+
+.prose ul, .prose ol {
+  @apply my-2 pl-4;
+}
+
+.prose li {
+  @apply my-0.5;
+}

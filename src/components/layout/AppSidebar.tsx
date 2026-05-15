@@ -9,6 +9,10 @@ import {
   LogOut,
   ArrowUpCircle,
   Layers,
+  Calendar,
+  Megaphone,
+  History,
+  ShieldCheck
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -30,9 +34,11 @@ const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Pending Accounts", url: "/pending", icon: UserCheck },
   { title: "Upgrade Requests", url: "/upgrades", icon: ArrowUpCircle },
-  { title: "Alumni", url: "/alumni", icon: Users },
-  { title: "Students", url: "/students", icon: GraduationCap },
+  { title: "Member Directory", url: "/members", icon: Users },
+  { title: "Event Moderation", url: "/events", icon: Calendar },
+  { title: "Broadcast center", url: "/announcements", icon: Megaphone },
   { title: "Manage Opportunities", url: "/admin/opportunities", icon: Briefcase },
+  { title: "Account Recovery", url: "/recovery", icon: History },
   { title: "Executive Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Network Analytics", url: "/network-analytics", icon: Layers },
   { title: "Settings", url: "/settings", icon: Settings },
