@@ -41,7 +41,7 @@ export default function UpgradeRequestsPage() {
       .then(setRequests)
       .catch(() => toast({ title: "Failed to load upgrade requests", variant: "destructive" }))
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
 
   const handleApprove = async () => {
     if (!approveId) return;

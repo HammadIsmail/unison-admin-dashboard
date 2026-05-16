@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,7 +71,7 @@ export default function StaffManagementPage() {
 
   const { toast } = useToast();
 
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiClient.get<StaffMember[]>("/api/admin/staff");
@@ -81,11 +81,11 @@ export default function StaffManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchStaff();
-  }, []);
+  }, [fetchStaff]);
 
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();

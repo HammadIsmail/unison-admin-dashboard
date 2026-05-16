@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, getAuthToken } from "@/lib/api";
-import { 
-  UserCog, Camera, Loader2, User, Save, RefreshCcw, 
-  Shield, Settings2, Mail, BadgeCheck, Lock, Eye, EyeOff 
+import {
+  UserCog, Camera, Loader2, User, Save, RefreshCcw,
+  Shield, Settings2, Mail, Lock, Eye, EyeOff
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+
+interface AdminProfile {
+  username: string;
+  display_name: string;
+  profile_picture: string;
+  role: string;
+}
 
 export default function ProfileSettingsPage() {
   const { user, updateUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
@@ -45,10 +52,10 @@ export default function ProfileSettingsPage() {
   const [newEmail, setNewEmail] = useState("");
   const [emailOtp, setEmailOtp] = useState("");
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get<any>("/api/admin/profile");
+      const res = await apiClient.get<AdminProfile>("/api/admin/profile");
       setProfile(res);
       setPreviewUrl(res.profile_picture);
     } catch (error) {
@@ -56,11 +63,11 @@ export default function ProfileSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [fetchProfile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,7 +91,7 @@ export default function ProfileSettingsPage() {
 
       const token = getAuthToken();
       const baseUrl = import.meta.env.VITE_NEXT_PUBLIC_API_BASE_URL;
-      
+
       const response = await fetch(`${baseUrl}/api/admin/profile`, {
         method: "PATCH",
         headers: {
@@ -98,7 +105,7 @@ export default function ProfileSettingsPage() {
       const updatedData = await response.json();
       setProfile(updatedData);
       updateUser(updatedData);
-      
+
       toast({ title: "Success", description: "Profile updated successfully." });
       setNewProfilePic(null);
     } catch (error) {
@@ -131,7 +138,7 @@ export default function ProfileSettingsPage() {
     setSaving(true);
     try {
       const res = await apiClient.patch<{ message: string; new_email: string }>(
-        "/api/admin/verify-email-change", 
+        "/api/admin/verify-email-change",
         { new_email: newEmail, otp: emailOtp }
       );
       updateUser({ email: res.new_email });
@@ -264,10 +271,10 @@ export default function ProfileSettingsPage() {
                 </div>
               </div>
               <div className="p-6 border-t bg-muted/5">
-                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <Mail className="h-3.5 w-3.5" />
-                    <span className="truncate">{user?.email}</span>
-                 </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <Mail className="h-3.5 w-3.5" />
+                  <span className="truncate">{user?.email}</span>
+                </div>
               </div>
             </Card>
 
@@ -281,18 +288,18 @@ export default function ProfileSettingsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="edit-name">Display Name</Label>
-                      <Input 
-                        id="edit-name" 
-                        value={profile.display_name} 
+                      <Input
+                        id="edit-name"
+                        value={profile.display_name}
                         onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
                         className="h-11"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit-username">Username</Label>
-                      <Input 
-                        id="edit-username" 
-                        value={profile.username} 
+                      <Input
+                        id="edit-username"
+                        value={profile.username}
                         onChange={(e) => setProfile({ ...profile, username: e.target.value })}
                         className="h-11"
                       />

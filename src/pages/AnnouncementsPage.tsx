@@ -46,7 +46,6 @@ interface Announcement {
     name: string;
   } | string;
   created_at: string;
-  [key: string]: any;
 }
 
 export default function AnnouncementsPage() {

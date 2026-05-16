@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { 
   Users, GraduationCap, UserCheck, Briefcase, Building2,
   UserPlus, CheckCircle2, MessageSquare, RefreshCw, AlertCircle
@@ -55,7 +55,7 @@ export default function DashboardHome() {
   const [filterType, setFilterType] = useState<string>("ALL");
   const [filterUserId, setFilterUserId] = useState("");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       let activityUrl = "/api/admin/recent-activity?limit=10";
@@ -73,19 +73,20 @@ export default function DashboardHome() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterType, filterUserId]);
 
   useEffect(() => {
     fetchData();
-  }, [filterType]); // Refetch on type change
+  }, [fetchData]);
 
   // Debounced effect for userId
   useEffect(() => {
+    if (!filterUserId) return;
     const timer = setTimeout(() => {
-      if (filterUserId) fetchData();
+      fetchData();
     }, 500);
     return () => clearTimeout(timer);
-  }, [filterUserId]);
+  }, [filterUserId, fetchData]);
 
   const barData = stats ? [
     { label: "Alumni", count: stats.total_alumni },
