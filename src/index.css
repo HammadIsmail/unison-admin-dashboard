@@ -134,6 +134,13 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     @apply bg-muted-foreground/20 rounded-full;
   }
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Custom ReactQuill Styling */
@@ -180,4 +187,29 @@
 
 .prose li {
   @apply my-0.5;
+}
+
+/* Rich Text Heading Styles */
+.ql-editor h1, .prose h1 {
+  @apply text-3xl font-extrabold mb-4 mt-6 leading-tight;
+}
+
+.ql-editor h2, .prose h2 {
+  @apply text-2xl font-bold mb-3 mt-5 leading-tight;
+}
+
+.ql-editor h3, .prose h3 {
+  @apply text-xl font-bold mb-2 mt-4 leading-tight;
+}
+
+.ql-editor ul, .prose ul {
+  @apply list-disc pl-5 mb-4;
+}
+
+.ql-editor ol, .prose ol {
+  @apply list-decimal pl-5 mb-4;
+}
+
+.ql-editor blockquote, .prose blockquote {
+  @apply border-l-4 border-primary/30 pl-4 italic my-4 text-muted-foreground;
 }

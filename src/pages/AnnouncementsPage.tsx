@@ -1,17 +1,34 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { 
-  Megaphone, Send, Trash2, Calendar as CalendarIcon, 
-  Image as ImageIcon, Video, X, Loader2, Play
+import {
+  Megaphone, Send, Trash2, Calendar as CalendarIcon,
+  Image as ImageIcon, Video, X, Loader2, Play, Eye
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, getAuthToken } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle, 
+  SheetDescription,
+  SheetFooter
+} from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/lib/utils";
 import ReactQuill from 'react-quill';
@@ -23,6 +40,11 @@ interface Announcement {
   description: string;
   media_url?: string | null;
   media_type?: 'image' | 'video' | null;
+  event_date?: string | null;
+  created_by_admin?: {
+    id: string;
+    name: string;
+  } | string;
   created_at: string;
   [key: string]: any;
 }
@@ -33,13 +55,19 @@ export default function AnnouncementsPage() {
   const [broadcasting, setBroadcasting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [media, setMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+
+  // Detail view state
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [fetchingDetail, setFetchingDetail] = useState(false);
+  const [announcementToDelete, setAnnouncementToDelete] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -59,6 +87,20 @@ export default function AnnouncementsPage() {
     fetchAnnouncements();
   }, [fetchAnnouncements]);
 
+  const fetchAnnouncementDetail = async (id: string) => {
+    setFetchingDetail(true);
+    setIsDetailOpen(true);
+    try {
+      const res = await apiClient.get<Announcement>(`/api/admin/announcements/${id}`);
+      setSelectedAnnouncement(res);
+    } catch {
+      toast({ title: "Failed to load announcement details", variant: "destructive" });
+      setIsDetailOpen(false);
+    } finally {
+      setFetchingDetail(false);
+    }
+  };
+
   const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -70,10 +112,10 @@ export default function AnnouncementsPage() {
 
   const handleBroadcast = async () => {
     if (!title || !description) return;
-    
+
     setBroadcasting(true);
     setProgress(10);
-    
+
     try {
       const formData = new FormData();
       formData.append("title", title);
@@ -82,10 +124,10 @@ export default function AnnouncementsPage() {
       if (media) formData.append("media", media);
 
       setProgress(30);
-      
+
       const token = getAuthToken();
       const baseUrl = import.meta.env.VITE_NEXT_PUBLIC_API_BASE_URL;
-      
+
       const response = await fetch(`${baseUrl}/api/admin/announcements`, {
         method: "POST",
         headers: {
@@ -100,7 +142,7 @@ export default function AnnouncementsPage() {
 
       setProgress(100);
       toast({ title: "Announcement Broadcasted", description: "All active users have been notified." });
-      
+
       // Reset form
       setTitle("");
       setDescription("");
@@ -108,7 +150,7 @@ export default function AnnouncementsPage() {
       setMedia(null);
       setMediaPreview(null);
       setIsDialogOpen(false);
-      
+
       fetchAnnouncements();
     } catch {
       toast({ title: "Broadcast Failed", variant: "destructive" });
@@ -118,13 +160,16 @@ export default function AnnouncementsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!announcementToDelete) return;
     try {
-      await apiClient.del(`/api/admin/announcements/${id}`);
-      setAnnouncements(prev => prev.filter(a => a.id !== id));
+      await apiClient.del(`/api/admin/announcements/${announcementToDelete}`);
+      setAnnouncements(prev => prev.filter(a => a.id !== announcementToDelete));
       toast({ title: "Announcement deleted" });
     } catch {
       toast({ title: "Failed to delete announcement", variant: "destructive" });
+    } finally {
+      setAnnouncementToDelete(null);
     }
   };
 
@@ -154,13 +199,13 @@ export default function AnnouncementsPage() {
                 Compose a message to be sent to all approved users.
               </DialogDescription>
             </div>
-            
+
             <div className="p-6 space-y-6 overflow-y-auto scrollbar-thin">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Announcement Title</Label>
-                  <Input 
-                    placeholder="e.g., Annual Convocation 2025" 
+                  <Input
+                    placeholder="e.g., Annual Convocation 2025"
                     className="h-11 focus-visible:ring-primary/20"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
@@ -170,7 +215,7 @@ export default function AnnouncementsPage() {
                 <div className="space-y-2">
                   <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Message Body</Label>
                   <div className="quill-editor-wrapper">
-                    <ReactQuill 
+                    <ReactQuill
                       theme="snow"
                       value={description}
                       onChange={setDescription}
@@ -180,7 +225,7 @@ export default function AnnouncementsPage() {
                         toolbar: [
                           [{ 'header': [1, 2, 3, false] }],
                           ['bold', 'italic', 'underline', 'strike'],
-                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                           ['link', 'clean']
                         ]
                       }}
@@ -193,8 +238,8 @@ export default function AnnouncementsPage() {
                     <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Event Date (Optional)</Label>
                     <div className="relative">
                       <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        type="datetime-local" 
+                      <Input
+                        type="datetime-local"
                         className="pl-10 h-11 focus-visible:ring-primary/20"
                         value={eventDate}
                         onChange={(e) => setEventDate(e.target.value)}
@@ -203,7 +248,7 @@ export default function AnnouncementsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Attachment</Label>
-                    <div 
+                    <div
                       className="h-11 border-2 border-dashed rounded-md flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors relative overflow-hidden"
                       onClick={() => document.getElementById('media-upload')?.click()}
                     >
@@ -215,11 +260,11 @@ export default function AnnouncementsPage() {
                           <span className="text-xs font-medium">Add Media</span>
                         </div>
                       )}
-                      <input 
-                        id="media-upload" 
-                        type="file" 
-                        hidden 
-                        accept="image/*,video/*" 
+                      <input
+                        id="media-upload"
+                        type="file"
+                        hidden
+                        accept="image/*,video/*"
                         onChange={handleMediaChange}
                       />
                     </div>
@@ -228,9 +273,9 @@ export default function AnnouncementsPage() {
 
                 {mediaPreview && (
                   <div className="relative aspect-video rounded-xl overflow-hidden border bg-black/5">
-                    <Button 
-                      size="icon" 
-                      variant="destructive" 
+                    <Button
+                      size="icon"
+                      variant="destructive"
                       className="absolute top-2 right-2 h-7 w-7 rounded-full z-10"
                       onClick={() => { setMedia(null); setMediaPreview(null); }}
                     >
@@ -260,8 +305,8 @@ export default function AnnouncementsPage() {
 
             <DialogFooter className="p-6 bg-muted/30 border-t flex flex-row items-center justify-between">
               <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={broadcasting}>Cancel</Button>
-              <Button 
-                onClick={handleBroadcast} 
+              <Button
+                onClick={handleBroadcast}
                 disabled={!title || !description || broadcasting}
                 className="gap-2 min-w-[140px]"
               >
@@ -303,7 +348,11 @@ export default function AnnouncementsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {announcements.map((item) => (
-              <Card key={item.id} className="group overflow-hidden border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
+              <Card 
+                key={item.id} 
+                className="group overflow-hidden border-primary/10 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 cursor-pointer"
+                onClick={() => fetchAnnouncementDetail(item.id)}
+              >
                 {item.media_url ? (
                   <div className="relative aspect-video overflow-hidden bg-black/5">
                     {item.media_type === 'video' ? (
@@ -327,16 +376,21 @@ export default function AnnouncementsPage() {
                 <CardHeader className="p-6 pb-2">
                   <div className="flex justify-between items-start gap-2">
                     <CardTitle className="text-lg font-bold leading-tight line-clamp-2">{item.title}</CardTitle>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAnnouncementToDelete(item.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <CardDescription className="line-clamp-3 mt-2 text-xs leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                  <CardDescription className="line-clamp-3 mt-2 text-xs leading-relaxed ql-editor prose prose-sm dark:prose-invert max-w-none !p-0">
                     <div dangerouslySetInnerHTML={{ __html: item.description }} />
                   </CardDescription>
                 </CardHeader>
@@ -368,6 +422,124 @@ export default function AnnouncementsPage() {
           </div>
         )}
       </div>
+
+      {/* Detail Slider (Sheet) */}
+      <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <SheetContent side="right" className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl flex flex-col h-full">
+          {fetchingDetail ? (
+            <div className="h-full flex flex-col items-center justify-center gap-4 bg-background">
+              <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              <p className="text-sm font-medium text-muted-foreground">Fetching announcement details...</p>
+            </div>
+          ) : selectedAnnouncement ? (
+            <>
+              <div className="bg-primary px-8 py-4 text-primary-foreground relative">
+                <SheetTitle className="text-2xl font-bold tracking-tight pr-8 text-primary-foreground leading-tight">
+                  {selectedAnnouncement.title}
+                </SheetTitle>
+              </div>
+
+              <div className="overflow-y-auto scrollbar-none bg-card flex-1">
+                {selectedAnnouncement.media_url && (
+                  <div className="aspect-video w-full bg-black relative">
+                    {selectedAnnouncement.media_type === 'video' ? (
+                      <video
+                        src={selectedAnnouncement.media_url}
+                        controls
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={selectedAnnouncement.media_url}
+                        alt={selectedAnnouncement.title}
+                        className="w-full h-full object-contain"
+                      />
+                    )}
+                  </div>
+                )}
+
+                <div className="p-8 space-y-8">
+                  <div className="ql-editor prose prose-lg dark:prose-invert max-w-none !p-0">
+                    <div
+                      dangerouslySetInnerHTML={{ __html: selectedAnnouncement.description }}
+                      className="text-foreground/90 leading-relaxed"
+                    />
+                  </div>
+
+                  <div className="space-y-6 pt-8 border-t border-border/50">
+                    <div className="space-y-4">
+                      <Label className="text-xs uppercase font-black tracking-widest text-muted-foreground flex items-center gap-2">
+                        <div className="h-1 w-4 bg-primary rounded-full" />
+                        Temporal Data
+                      </Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border/50">
+                          <CalendarIcon className="h-5 w-5 text-primary" />
+                          <div>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Broadcasted On</p>
+                            <p className="text-sm font-semibold">{formatDate(selectedAnnouncement.created_at)}</p>
+                          </div>
+                        </div>
+                        {selectedAnnouncement.event_date && (
+                          <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/10">
+                            <CalendarIcon className="h-5 w-5 text-primary" />
+                            <div>
+                              <p className="text-[10px] font-bold text-primary uppercase">Scheduled Event Date</p>
+                              <p className="text-sm font-semibold">{new Date(selectedAnnouncement.event_date).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <Label className="text-xs uppercase font-black tracking-widest text-muted-foreground flex items-center gap-2">
+                        <div className="h-1 w-4 bg-primary rounded-full" />
+                        Administrative Info
+                      </Label>
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border/50">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                          {typeof selectedAnnouncement.created_by_admin === 'object' 
+                            ? selectedAnnouncement.created_by_admin.name.charAt(0) 
+                            : 'A'}
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase">Created By Admin</p>
+                          <p className="text-sm font-semibold">
+                            {typeof selectedAnnouncement.created_by_admin === 'object'
+                              ? selectedAnnouncement.created_by_admin.name
+                              : (selectedAnnouncement.created_by_admin || "System Admin")}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!announcementToDelete} onOpenChange={(open) => !open && setAnnouncementToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the announcement
+              from the system and it will no longer be visible to students and alumni.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Announcement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

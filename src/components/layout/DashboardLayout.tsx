@@ -10,7 +10,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <TopNavbar />
-          <main className="flex-1 p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-6 overflow-auto scrollbar-none">{children}</main>
         </div>
       </div>
     </SidebarProvider>

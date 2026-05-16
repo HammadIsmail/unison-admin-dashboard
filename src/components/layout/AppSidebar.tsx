@@ -5,14 +5,15 @@ import {
   Users,
   Briefcase,
   BarChart3,
-  Settings,
   LogOut,
   ArrowUpCircle,
   Layers,
   Calendar,
   Megaphone,
   History,
-  ShieldCheck
+  ShieldCheck,
+  UserCog,
+  UserCircle
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -38,10 +39,11 @@ const mainItems = [
   { title: "Event Moderation", url: "/events", icon: Calendar },
   { title: "Broadcast center", url: "/announcements", icon: Megaphone },
   { title: "Manage Opportunities", url: "/admin/opportunities", icon: Briefcase },
-  { title: "Account Recovery", url: "/recovery", icon: History },
-  { title: "Executive Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Network Analytics", url: "/network-analytics", icon: Layers },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Staff Management", url: "/staff", icon: ShieldCheck, adminOnly: true },
+  { title: "Account Recovery", url: "/recovery", icon: History, adminOnly: true },
+  { title: "Executive Analytics", url: "/analytics", icon: BarChart3, adminOnly: true },
+  { title: "Network Analytics", url: "/network-analytics", icon: Layers, adminOnly: true },
+  { title: "Profile Settings", url: "/profile", icon: UserCog },
 ];
 
 export function AppSidebar() {
@@ -64,27 +66,29 @@ export function AppSidebar() {
         )}
       </div>
 
-      <SidebarContent className="scrollbar-thin">
+      <SidebarContent className="scrollbar-none">
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] uppercase tracking-widest">
             {!collapsed && "Menu"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.url}
-                    tooltip={item.title}
-                  >
-                    <NavLink to={item.url} end>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {mainItems
+                .filter(item => !item.adminOnly || user?.role === "admin")
+                .map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === item.url}
+                      tooltip={item.title}
+                    >
+                      <NavLink to={item.url} end>
+                        <item.icon className="h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
