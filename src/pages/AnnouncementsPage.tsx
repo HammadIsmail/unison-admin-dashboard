@@ -235,15 +235,12 @@ export default function AnnouncementsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Event Date (Optional)</Label>
-                    <div className="relative">
-                      <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="datetime-local"
-                        className="pl-10 h-11 focus-visible:ring-primary/20"
-                        value={eventDate}
-                        onChange={(e) => setEventDate(e.target.value)}
-                      />
-                    </div>
+                    <Input
+                      type="datetime-local"
+                      className="h-11 focus-visible:ring-primary/20"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Attachment</Label>
