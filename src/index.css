@@ -1,0 +1,215 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 214 32% 91%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 221 83% 53%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --chart-1: 221 83% 53%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 262 83% 58%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 20%;
+    --sidebar-ring: 217 91% 60%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --chart-1: 217 91% 60%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 262 83% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Custom ReactQuill Styling */
+.quill-editor-wrapper .ql-toolbar.ql-snow {
+  @apply border-none bg-muted/50 py-2 px-4 rounded-t-lg;
+}
+
+.quill-editor-wrapper .ql-container.ql-snow {
+  @apply border-none min-h-[150px] text-sm;
+}
+
+.quill-editor-wrapper .ql-editor {
+  @apply p-4 min-h-[150px];
+}
+
+.quill-editor-wrapper .ql-editor.ql-blank::before {
+  @apply text-muted-foreground/50 not-italic left-4;
+}
+
+.dark .quill-editor-wrapper .ql-snow .ql-stroke {
+  stroke: hsl(var(--muted-foreground));
+}
+
+.dark .quill-editor-wrapper .ql-snow .ql-fill {
+  fill: hsl(var(--muted-foreground));
+}
+
+.dark .quill-editor-wrapper .ql-snow .ql-picker {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Typography Overrides for HTML Content */
+.prose {
+  @apply max-w-none;
+}
+
+.prose p {
+  @apply my-1 leading-relaxed;
+}
+
+.prose ul, .prose ol {
+  @apply my-2 pl-4;
+}
+
+.prose li {
+  @apply my-0.5;
+}
+
+/* Rich Text Heading Styles */
+.ql-editor h1, .prose h1 {
+  @apply text-3xl font-extrabold mb-4 mt-6 leading-tight;
+}
+
+.ql-editor h2, .prose h2 {
+  @apply text-2xl font-bold mb-3 mt-5 leading-tight;
+}
+
+.ql-editor h3, .prose h3 {
+  @apply text-xl font-bold mb-2 mt-4 leading-tight;
+}
+
+.ql-editor ul, .prose ul {
+  @apply list-disc pl-5 mb-4;
+}
+
+.ql-editor ol, .prose ol {
+  @apply list-decimal pl-5 mb-4;
+}
+
+.ql-editor blockquote, .prose blockquote {
+  @apply border-l-4 border-primary/30 pl-4 italic my-4 text-muted-foreground;
+}

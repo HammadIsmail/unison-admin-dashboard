@@ -1,0 +1,144 @@
+import {
+  LayoutDashboard,
+  UserCheck,
+  GraduationCap,
+  Users,
+  Briefcase,
+  BarChart3,
+  LogOut,
+  ArrowUpCircle,
+  Layers,
+  Calendar,
+  Megaphone,
+  History,
+  ShieldCheck,
+  UserCog,
+  UserCircle,
+  Building2,
+} from "lucide-react";
+import { NavLink } from "@/components/NavLink";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "@/lib/auth";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarFooter,
+  useSidebar,
+} from "@/components/ui/sidebar";
+
+const mainItems = [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Pending Accounts", url: "/pending", icon: UserCheck },
+  { title: "Upgrade Requests", url: "/upgrades", icon: ArrowUpCircle },
+  { title: "Member Directory", url: "/members", icon: Users },
+  { title: "Event Moderation", url: "/events", icon: Calendar },
+  { title: "Broadcast center", url: "/announcements", icon: Megaphone },
+  { title: "Manage Opportunities", url: "/admin/opportunities", icon: Briefcase },
+  { title: "University Settings", url: "/tenant-settings", icon: Building2, adminOnly: true },
+  { title: "Staff Management", url: "/staff", icon: ShieldCheck, adminOnly: true },
+  { title: "Account Recovery", url: "/recovery", icon: History, adminOnly: true },
+  { title: "Executive Analytics", url: "/analytics", icon: BarChart3, adminOnly: true },
+  { title: "Network Analytics", url: "/network-analytics", icon: Layers, adminOnly: true },
+  { title: "Profile Settings", url: "/profile", icon: UserCog },
+];
+
+const superAdminItems = [
+  { title: "Platform Overview", url: "/super-admin", icon: LayoutDashboard },
+  { title: "University Management", url: "/super-admin/tenants", icon: Building2 },
+  { title: "Profile Settings", url: "/profile", icon: UserCog },
+];
+
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+  const location = useLocation();
+  const { logout, user, tenant } = useAuth();
+
+  const isSuperAdmin = user?.role === "super_admin";
+  const itemsToRender = isSuperAdmin
+    ? superAdminItems
+    : mainItems.filter((item) => !item.adminOnly || user?.role === "admin");
+
+  return (
+    <Sidebar collapsible="icon" className="border-r-0">
+      <div className="p-4 flex items-center gap-3">
+        <div className="h-9 w-9 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
+          {tenant?.logo_url ? (
+            <img
+              src={tenant.logo_url}
+              alt={tenant.name}
+              className="h-full w-full object-contain p-1"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <span className="text-sidebar-primary-foreground font-bold text-sm">
+              {isSuperAdmin ? "S" : "U"}
+            </span>
+          )}
+        </div>
+        {!collapsed && (
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-sidebar-foreground tracking-wide">UNISON</h2>
+            <p
+              className="text-[10px] text-sidebar-foreground/60 truncate font-medium"
+              title={isSuperAdmin ? "Platform Super Admin" : tenant?.name || "Alumni Network"}
+            >
+              {isSuperAdmin ? "Platform Super Admin" : tenant?.name || "Alumni Network"}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <SidebarContent className="scrollbar-none">
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] uppercase tracking-widest">
+            {!collapsed && (isSuperAdmin ? "Platform Administration" : "Menu")}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {itemsToRender.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.url}
+                    tooltip={item.title}
+                  >
+                    <NavLink to={item.url} end>
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="p-3">
+        {!collapsed && user && (
+          <div className="px-2 py-2 mb-2">
+            <p className="text-xs font-medium text-sidebar-foreground truncate">{user.display_name}</p>
+            <p className="text-[10px] text-sidebar-foreground/50 truncate">{user.email}</p>
+          </div>
+        )}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={logout} tooltip="Logout">
+              <LogOut className="h-4 w-4" />
+              {!collapsed && <span>Logout</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
