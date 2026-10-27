@@ -149,6 +149,13 @@ export const createAnnouncement = async (payload: {
   return apiClient.post("/api/admin/announcements", payload);
 };
 
+export const updateAnnouncement = async (
+  id: string,
+  payload: { title?: string; content?: string }
+): Promise<any> => {
+  return apiClient.put(`/api/admin/announcements/${id}`, payload);
+};
+
 export const deleteAnnouncement = async (id: string): Promise<{ message: string }> => {
   return apiClient.del<{ message: string }>(`/api/admin/announcements/${id}`);
 };
