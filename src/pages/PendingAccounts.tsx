@@ -4,7 +4,7 @@ import { ConfirmDialog } from "@/components/dashboard/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, X, Eye, ShieldCheck, Mail, Calendar, User, Fingerprint, Image as ImageIcon, Building2, Briefcase } from "lucide-react";
+import { Check, X, Eye, ShieldCheck, Mail, Calendar, User, Fingerprint, Image as ImageIcon, Building2, Briefcase, GraduationCap, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +26,11 @@ interface PendingAccount {
   student_card_url?: string | null;
   affiliation?: string | null;
   job_title?: string | null;
+  roll_number?: string | null;
+  degree?: string | null;
+  batch?: string | null;
+  graduation_year?: number | string | null;
+  semester?: number | string | null;
   [key: string]: unknown;
 }
 
@@ -168,7 +173,7 @@ export default function PendingAccountsPage() {
       label: "Review Actions",
       render: (item: PendingAccount) => (
         <div className="flex items-center gap-2">
-          {item.role === "student" && item.student_card_url && (
+          {item.student_card_url && (
             <Button 
               size="sm" 
               variant="outline" 
@@ -370,6 +375,9 @@ export default function PendingAccountsPage() {
                   <DialogTitle className="text-2xl font-bold tracking-tight">
                     {selectedAccount?.display_name || selectedAccount?.name || "User Details"}
                   </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground">
+                    Review registration and user profile details.
+                  </DialogDescription>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-mono">
                       @{selectedAccount?.username}
@@ -432,12 +440,60 @@ export default function PendingAccountsPage() {
                   </div>
                 </div>
               )}
+
+              {(selectedAccount?.role === 'student' || selectedAccount?.role === 'alumni') && (
+                <div className="space-y-4 pt-4 border-t border-primary/5">
+                  <h4 className="text-xs uppercase tracking-widest font-bold text-muted-foreground/70">Academic Information</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedAccount?.roll_number && (
+                      <div className="flex items-start gap-2.5">
+                        <div className="mt-0.5 p-1.5 rounded-md bg-muted">
+                          <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground font-medium">Roll Number</p>
+                          <p className="text-sm font-semibold">{selectedAccount.roll_number}</p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedAccount?.degree && (
+                      <div className="flex items-start gap-2.5">
+                        <div className="mt-0.5 p-1.5 rounded-md bg-muted">
+                          <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground font-medium">Degree</p>
+                          <p className="text-sm font-semibold">{selectedAccount.degree}</p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedAccount?.batch && (
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Batch</p>
+                        <p className="text-sm font-semibold">{selectedAccount.batch}</p>
+                      </div>
+                    )}
+                    {selectedAccount?.graduation_year && (
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Graduation Year</p>
+                        <p className="text-sm font-semibold">{selectedAccount.graduation_year}</p>
+                      </div>
+                    )}
+                    {selectedAccount?.semester && (
+                      <div>
+                        <p className="text-xs text-muted-foreground font-medium">Semester</p>
+                        <p className="text-sm font-semibold">{selectedAccount.semester}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
               <h4 className="text-xs uppercase tracking-widest font-bold text-muted-foreground/70">Verification Assets</h4>
               
-              {selectedAccount?.role === "student" && selectedAccount.student_card_url ? (
+              {selectedAccount?.student_card_url ? (
                 <div 
                   className="relative aspect-[4/3] rounded-xl overflow-hidden border-2 border-dashed border-primary/20 bg-muted/30 group cursor-pointer hover:border-primary/40 transition-all"
                   onClick={() => setViewCardUrl(selectedAccount.student_card_url!)}
@@ -455,7 +511,7 @@ export default function PendingAccountsPage() {
               ) : (
                 <div className="aspect-[4/3] rounded-xl border-2 border-dashed border-muted flex flex-col items-center justify-center text-muted-foreground gap-2 bg-muted/10">
                   <ImageIcon className="h-8 w-8 opacity-20" />
-                  <p className="text-[10px] font-medium uppercase tracking-tight">No ID Asset Required</p>
+                  <p className="text-[10px] font-medium uppercase tracking-tight">No ID Asset Uploaded</p>
                 </div>
               )}
             </div>
